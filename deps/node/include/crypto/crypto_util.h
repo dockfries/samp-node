@@ -3,14 +3,14 @@
 
 #if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 
-#include "env.h"
 #include "async_wrap.h"
-#include "allocated_buffer.h"
+#include "env.h"
 #include "node_errors.h"
+#include "node_external_reference.h"
 #include "node_internals.h"
+#include "string_bytes.h"
 #include "util.h"
 #include "v8.h"
-#include "string_bytes.h"
 
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -88,6 +88,7 @@ extern int VerifyCallback(int preverify_ok, X509_STORE_CTX* ctx);
 
 bool ProcessFipsOptions();
 
+bool InitCryptoOnce(v8::Isolate* isolate);
 void InitCryptoOnce();
 
 void InitCrypto(v8::Local<v8::Object> target);
@@ -109,31 +110,18 @@ struct MarkPopErrorOnReturn {
   ~MarkPopErrorOnReturn() { ERR_pop_to_mark(); }
 };
 
-// Ensure that OpenSSL has enough entropy (at least 256 bits) for its PRNG.
-// The entropy pool starts out empty and needs to fill up before the PRNG
-// can be used securely.  Once the pool is filled, it never dries up again;
-// its contents is stirred and reused when necessary.
-//
-// OpenSSL normally fills the pool automatically but not when someone starts
-// generating random numbers before the pool is full: in that case OpenSSL
-// keeps lowering the entropy estimate to thwart attackers trying to guess
-// the initial state of the PRNG.
-//
-// When that happens, we will have to wait until enough entropy is available.
-// That should normally never take longer than a few milliseconds.
-//
-// OpenSSL draws from /dev/random and /dev/urandom.  While /dev/random may
-// block pending "true" randomness, /dev/urandom is a CSPRNG that doesn't
-// block under normal circumstances.
-//
-// The only time when /dev/urandom may conceivably block is right after boot,
-// when the whole system is still low on entropy.  That's not something we can
-// do anything about.
-void CheckEntropy();
+struct CSPRNGResult {
+  const bool ok;
+  MUST_USE_RESULT bool is_ok() const { return ok; }
+  MUST_USE_RESULT bool is_err() const { return !ok; }
+};
 
-// Generate length bytes of random data. If this returns false, the data
-// may not be truly random but it's still generally good enough.
-bool EntropySource(unsigned char* buffer, size_t length);
+// Either succeeds with exactly |length| bytes of cryptographically
+// strong pseudo-random data, or fails. This function may block.
+// Don't assume anything about the contents of |buffer| on error.
+// As a special case, |length == 0| can be used to check if the CSPRNG
+// is properly seeded without consuming entropy.
+MUST_USE_RESULT CSPRNGResult CSPRNG(void* buffer, size_t length);
 
 int PasswordCallback(char* buf, int size, int rwflag, void* u);
 
@@ -256,6 +244,8 @@ class ByteSource {
   std::unique_ptr<v8::BackingStore> ReleaseToBackingStore();
 
   v8::Local<v8::ArrayBuffer> ToArrayBuffer(Environment* env);
+
+  v8::MaybeLocal<v8::Uint8Array> ToBuffer(Environment* env);
 
   void reset();
 
@@ -415,12 +405,21 @@ class CryptoJob : public AsyncWrap, public ThreadPoolWork {
       v8::FunctionCallback new_fn,
       Environment* env,
       v8::Local<v8::Object> target) {
-    v8::Local<v8::FunctionTemplate> job = env->NewFunctionTemplate(new_fn);
+    v8::Isolate* isolate = env->isolate();
+    v8::HandleScope scope(isolate);
+    v8::Local<v8::Context> context = env->context();
+    v8::Local<v8::FunctionTemplate> job = NewFunctionTemplate(isolate, new_fn);
     job->Inherit(AsyncWrap::GetConstructorTemplate(env));
     job->InstanceTemplate()->SetInternalFieldCount(
         AsyncWrap::kInternalFieldCount);
-    env->SetProtoMethod(job, "run", Run);
-    env->SetConstructorFunction(target, CryptoJobTraits::JobName, job);
+    SetProtoMethod(isolate, job, "run", Run);
+    SetConstructorFunction(context, target, CryptoJobTraits::JobName, job);
+  }
+
+  static void RegisterExternalReferences(v8::FunctionCallback new_fn,
+                                         ExternalReferenceRegistry* registry) {
+    registry->Register(new_fn);
+    registry->Register(Run);
   }
 
  private:
@@ -455,6 +454,10 @@ class DeriveBitsJob final : public CryptoJob<DeriveBitsTraits> {
       Environment* env,
       v8::Local<v8::Object> target) {
     CryptoJob<DeriveBitsTraits>::Initialize(New, env, target);
+  }
+
+  static void RegisterExternalReferences(ExternalReferenceRegistry* registry) {
+    CryptoJob<DeriveBitsTraits>::RegisterExternalReferences(New, registry);
   }
 
   DeriveBitsJob(
@@ -550,9 +553,12 @@ struct EnginePointer {
 
   inline void reset(ENGINE* engine_ = nullptr, bool finish_on_exit_ = false) {
     if (engine != nullptr) {
-      if (finish_on_exit)
-        ENGINE_finish(engine);
-      ENGINE_free(engine);
+      if (finish_on_exit) {
+        // This also does the equivalent of ENGINE_free.
+        CHECK_EQ(ENGINE_finish(engine), 1);
+      } else {
+        CHECK_EQ(ENGINE_free(engine), 1);
+      }
     }
     engine = engine_;
     finish_on_exit = finish_on_exit_;
@@ -599,13 +605,51 @@ class CipherPushContext {
   Environment* env_;
 };
 
-template <class TypeName>
-void array_push_back(const TypeName* md,
+#if OPENSSL_VERSION_MAJOR >= 3
+template <class TypeName,
+          TypeName* fetch_type(OSSL_LIB_CTX*, const char*, const char*),
+          void free_type(TypeName*),
+          const TypeName* getbyname(const char*),
+          const char* getname(const TypeName*)>
+void array_push_back(const TypeName* evp_ref,
                      const char* from,
                      const char* to,
                      void* arg) {
+  if (!from)
+    return;
+
+  const TypeName* real_instance = getbyname(from);
+  if (!real_instance)
+    return;
+
+  const char* real_name = getname(real_instance);
+  if (!real_name)
+    return;
+
+  // EVP_*_fetch() does not support alias names, so we need to pass it the
+  // real/original algorithm name.
+  // We use EVP_*_fetch() as a filter here because it will only return an
+  // instance if the algorithm is supported by the public OpenSSL APIs (some
+  // algorithms are used internally by OpenSSL and are also passed to this
+  // callback).
+  TypeName* fetched = fetch_type(nullptr, real_name, nullptr);
+  if (!fetched)
+    return;
+
+  free_type(fetched);
   static_cast<CipherPushContext*>(arg)->push_back(from);
 }
+#else
+template <class TypeName>
+void array_push_back(const TypeName* evp_ref,
+                     const char* from,
+                     const char* to,
+                     void* arg) {
+  if (!from)
+    return;
+  static_cast<CipherPushContext*>(arg)->push_back(from);
+}
+#endif
 
 inline bool IsAnyByteSource(v8::Local<v8::Value> arg) {
   return arg->IsArrayBufferView() ||
@@ -698,20 +742,6 @@ class ArrayBufferOrViewContents {
   std::shared_ptr<v8::BackingStore> store_;
 };
 
-template <typename T>
-std::vector<T> CopyBuffer(const ArrayBufferOrViewContents<T>& buf) {
-  std::vector<T> vec;
-  vec->resize(buf.size());
-  if (vec->size() > 0 && buf.data() != nullptr)
-    memcpy(vec->data(), buf.data(), vec->size());
-  return vec;
-}
-
-template <typename T>
-std::vector<T> CopyBuffer(v8::Local<v8::Value> buf) {
-  return CopyBuffer(ArrayBufferOrViewContents<T>(buf));
-}
-
 v8::MaybeLocal<v8::Value> EncodeBignum(
     Environment* env,
     const BIGNUM* bn,
@@ -727,6 +757,7 @@ v8::Maybe<bool> SetEncodedValue(
 
 namespace Util {
 void Initialize(Environment* env, v8::Local<v8::Object> target);
+void RegisterExternalReferences(ExternalReferenceRegistry* registry);
 }  // namespace Util
 
 }  // namespace crypto
