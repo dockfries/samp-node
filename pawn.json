@@ -1,46 +1,44 @@
-  
 {
-  "user": "AmyrAhmady",
+  "user": "dockfries",
   "repo": "samp-node",
-  "entry": "test.pwn",
-  "output": "test/gamemodes/test.amx",
-  "dependencies": ["Southclaws/samp-stdlib"],
-  "dev_dependencies": ["pawn-lang/YSI-Includes@5.x"],
-  "runtime": {
-    "plugins": ["AmyrAhmady/samp-node"]
-  },
   "resources": [
     {
-      "name": "samp-node-linux.tar.gz",
-      "archive": true,
-      "platform": "linux",
-      "files": {
-        "libnode.so.93": "libnode.so.93"
-      },
       "plugins": [
         "samp-node.so"
       ],
+      "platform": "linux",
+      "name": "samp-node-linux.tar.gz",
       "includes": [
         "samp-node.inc"
-      ]
+      ],
+      "files": {
+        "libnode.so.93": "libnode.so.93"
+      },
+      "archive": true
     },
     {
-      "name": "samp-node-windows.zip",
-      "archive": true,
-      "platform": "windows",     
       "plugins": [
         "samp-node.dll"
-      ],      
+      ],
+      "platform": "windows",
+      "name": "samp-node-windows.zip",
       "includes": [
         "samp-node.inc"
       ],
       "files": {
         "libnode.dll": "libnode.dll"
-      }      
+      },
+      "archive": true
     }
   ],
   "contributors": [
     "AmyrAhmady",
-    "ADRFranklin"
-  ]  
+    "ADRFranklin",
+    "dockfries"
+  ],
+  "runtime": {
+    "plugins": [
+      "dockfries/samp-node"
+    ]
+  }
 }

@@ -18,8 +18,6 @@ namespace sampnode
 	public:
 		static std::unordered_map<node::Environment*, std::shared_ptr<Resource>> resourcesPool;
 
-		static void LoadAllResources(const std::vector<std::string>& resources, bool enable_resources = true);
-
 		NodeImpl();
 		~NodeImpl();
 

@@ -15,7 +15,7 @@ namespace sampnode
 	class Resource
 	{
 	public:
-		Resource(const std::string& name, const std::string& path);
+		Resource(const std::string& name);
 		Resource();
 		~Resource();
 
@@ -38,7 +38,6 @@ namespace sampnode
 	private:
 		v8::UniquePersistent<v8::Context> context;
 		std::unique_ptr<node::Environment, decltype(&node::FreeEnvironment)> nodeEnvironment;
-		std::string path;
 		std::string name;
 	};
 

@@ -147,36 +147,6 @@ namespace sampnode
 		}
 	}
 
-	void event::fire(const v8::FunctionCallbackInfo<v8::Value>& info)
-	{
-		if (info.Length() > 0)
-		{
-			auto isolate = info.GetIsolate();
-			v8::Locker locker(isolate);
-			v8::Isolate::Scope isolateScope(isolate);
-			v8::HandleScope scope(isolate);
-
-			if (!info[0]->IsString())
-				return;
-
-			std::string eventName = utils::js_to_string(isolate, info[0]);
-
-			if (events.find(eventName) == events.end()) return;
-			event* _event = events[eventName];
-
-			v8::Local<v8::Value>* argv = NULL;
-			unsigned int argc = info.Length() - 1;
-			argv = new v8::Local<v8::Value>[argc];
-
-			for (int i = 0; i < argc; i++)
-			{
-				argv[i] = info[i + 1];
-			}
-
-			_event->call(argv, argc);
-		}
-	}
-
 	cell event::pawn_call_event(AMX* amx, cell* params)
 	{
 		char* eventName_c;

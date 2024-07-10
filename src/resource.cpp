@@ -22,7 +22,7 @@ static node::IsolateData* GetNodeIsolate()
 namespace sampnode
 {
 
-	Resource::Resource(const std::string& name, const std::string& path) : name(name), path(path), nodeEnvironment(nullptr, node::FreeEnvironment)
+	Resource::Resource(const std::string& name) : name(name), nodeEnvironment(nullptr, node::FreeEnvironment)
 	{}
 
 	Resource::Resource() : nodeEnvironment(nullptr, node::FreeEnvironment)
@@ -35,31 +35,12 @@ namespace sampnode
 
 	void Resource::Init()
 	{
-		std::string entryFile;
-		std::vector<std::string> node_flags;
 		Props_t& mainConfig = nodeImpl.GetMainConfig();
 
-		bool useInspector;
+		std::string entryFile = mainConfig.entry_file;
+		std::vector<std::string> node_flags  = mainConfig.node_flags;
 
-		if (mainConfig.enable_resources && path != "no_resource")
-		{
-			Config configFile;
-			if (!configFile.ParseFile(path + "/resource-config"))
-			{
-				L_ERROR << "Unable to load config file of resource " << name;
-				return;
-			}
-
-			entryFile = path + "/" + configFile.get_as<std::string>("entry_file");
-			node_flags = configFile.get_as<std::vector<std::string>>("node_flags");
-			useInspector = mainConfig.resources.size() == 1;
-		}
-		else
-		{
-			entryFile = mainConfig.entry_file;
-			node_flags = mainConfig.node_flags;
-			useInspector = true;
-		}
+		bool useInspector = true;
 
 		std::vector<std::string> args;
 		args.emplace_back("node");
@@ -84,10 +65,6 @@ namespace sampnode
 
 		v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(GetV8Isolate());
 		sampnode::functions::init(GetV8Isolate(), global);
-		sampnode::callback::add_event_definitions(GetV8Isolate(), global);
-
-		// create a global variable for resource
-		v8val::add_definition("__resname", name, global);
 
 		v8::Local<v8::Context> _context = node::NewContext(GetV8Isolate(), global);
 		context.Reset(GetV8Isolate(), _context);

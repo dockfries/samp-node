@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.0)
 # -
 
 if (NOT PLUGIN_VERSION)
-	set(PLUGIN_VERSION "0.2.0")
+	set(PLUGIN_VERSION "2.3.1")
 endif()
 
 project(samp-node VERSION ${PLUGIN_VERSION})
