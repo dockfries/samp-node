@@ -3,8 +3,8 @@
 #define USING_UV_SHARED 1
 
 #include "node.h"
-#include "env.h"
-#include "env-inl.h"
+// #include "env.h"
+// #include "env-inl.h"
 #include "v8.h"
 #include "uv.h"
 #include "libplatform/libplatform.h"
