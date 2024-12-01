@@ -40,12 +40,17 @@ find_package(SAMPSDK REQUIRED)
 include_directories(
 	${SAMPSDK_INCLUDE_DIR}
 	${PROJECT_SOURCE_DIR}/deps/sampgdk
-	${PROJECT_SOURCE_DIR}/deps/node/include
 	${PROJECT_SOURCE_DIR}/deps/v8
 	${PROJECT_SOURCE_DIR}/deps/uv
 	${PROJECT_SOURCE_DIR}/deps/json/single_include/nlohmann
 	${PROJECT_SOURCE_DIR}/deps/tinydir
 )
+
+if(WIN32)
+    include_directories(${PROJECT_SOURCE_DIR}/deps/node/include/win)
+elseif(UNIX)
+    include_directories(${PROJECT_SOURCE_DIR}/deps/node/include/linux)
+endif()
 
 # -
 # Linking
