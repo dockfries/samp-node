@@ -2,8 +2,10 @@
 #include <unordered_map>
 #include "node.h"
 #include "node_api.h"
-#include "env.h"
-#include "env-inl.h"
+#if defined(_WIN32) || defined(_WIN64)
+    #include "env.h"
+    #include "env-inl.h"
+#endif
 #include "v8.h"
 #include "uv.h"
 #include "libplatform/libplatform.h"
