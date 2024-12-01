@@ -1,0 +1,10 @@
+build/
+.vs/
+.vscode/
+Release/*.*
+Debug/*.*
+dependencies/
+releases/
+/out
+/deps/node/lib
+test/

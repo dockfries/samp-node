@@ -1,0 +1,44 @@
+{
+  "user": "dockfries",
+  "repo": "samp-node",
+  "resources": [
+    {
+      "plugins": [
+        "samp-node.so"
+      ],
+      "platform": "linux",
+      "name": "samp-node-linux.tar.gz",
+      "includes": [
+        "samp-node.inc"
+      ],
+      "files": {
+        "libnode.so.115": "libnode.so.115"
+      },
+      "archive": true
+    },
+    {
+      "plugins": [
+        "samp-node.dll"
+      ],
+      "platform": "windows",
+      "name": "samp-node-windows.zip",
+      "includes": [
+        "samp-node.inc"
+      ],
+      "files": {
+        "libnode.dll": "libnode.dll"
+      },
+      "archive": true
+    }
+  ],
+  "contributors": [
+    "AmyrAhmady",
+    "ADRFranklin",
+    "dockfries"
+  ],
+  "runtime": {
+    "plugins": [
+      "dockfries/samp-node"
+    ]
+  }
+}
