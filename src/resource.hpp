@@ -3,10 +3,8 @@
 #define USING_UV_SHARED 1
 
 #include "node.h"
-#if defined(_WIN32) || defined(_WIN64)
-    #include "env.h"
-    #include "env-inl.h"
-#endif
+#include "env.h"
+#include "env-inl.h"
 #include "v8.h"
 #include "uv.h"
 #include "libplatform/libplatform.h"
