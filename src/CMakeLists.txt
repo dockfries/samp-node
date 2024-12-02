@@ -8,7 +8,7 @@ include(AddSAMPPlugin)
 if(WIN32)
 	set(NODE_FILE "libnode.dll")
 else()
-	set(NODE_FILE "libnode.so.108")
+	set(NODE_FILE "libnode.so.115")
 endif()
 
 # -
@@ -42,21 +42,24 @@ include_directories(
 	${PROJECT_SOURCE_DIR}/deps/sampgdk
 	${PROJECT_SOURCE_DIR}/deps/json/single_include/nlohmann
 	${PROJECT_SOURCE_DIR}/deps/tinydir
+	${PROJECT_SOURCE_DIR}/deps/node/include/win
+	${PROJECT_SOURCE_DIR}/deps/v8/win
+	${PROJECT_SOURCE_DIR}/deps/uv/win
 )
 
-if(WIN32)
-    include_directories(
-			${PROJECT_SOURCE_DIR}/deps/node/include/win
-			${PROJECT_SOURCE_DIR}/deps/v8/win
-			${PROJECT_SOURCE_DIR}/deps/uv/win
-		)
-else()
-    include_directories(
-			${PROJECT_SOURCE_DIR}/deps/node/include/linux
-			${PROJECT_SOURCE_DIR}/deps/v8/linux
-			${PROJECT_SOURCE_DIR}/deps/uv/linux
-		)
-endif()
+# if(WIN32)
+#     include_directories(
+# 			${PROJECT_SOURCE_DIR}/deps/node/include/win
+# 			${PROJECT_SOURCE_DIR}/deps/v8/win
+# 			${PROJECT_SOURCE_DIR}/deps/uv/win
+# 		)
+# else()
+#     include_directories(
+# 			${PROJECT_SOURCE_DIR}/deps/node/include/linux
+# 			${PROJECT_SOURCE_DIR}/deps/v8/linux
+# 			${PROJECT_SOURCE_DIR}/deps/uv/linux
+# 		)
+# endif()
 
 # -
 # Linking
@@ -82,7 +85,7 @@ if (WIN32)
 else()
 	set_target_properties(${PROJECT_NAME} PROPERTIES
 		INSTALL_RPATH "$ORIGIN/..:$ORIGIN/")
-	target_link_libraries(${PROJECT_NAME} ${NODE_PATH}/libnode.so.108)
+	target_link_libraries(${PROJECT_NAME} ${NODE_PATH}/libnode.so.115)
 
 	set(LIBRARIES ${node} pthread dl m)		
 
