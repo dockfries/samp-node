@@ -5,6 +5,7 @@
 namespace sampnode
 {
 	std::unordered_map<AMX*, amx*> amx::amx_list = std::unordered_map<AMX*, amx*>();
+	AMX* amx::realAMX = NULL;
 
 	void amx::load(AMX* _amx)
 	{

@@ -434,7 +434,7 @@ SAMPGDK_API(cell, sampgdk_InvokeNativeV(AMX_NATIVE native,
 * \see sampgdk_InvokeNative()
 */
 SAMPGDK_API(cell, sampgdk_InvokeNativeArray(AMX_NATIVE native,
-    const char *format, void **args));
+    const char *format, void **args, AMX* amx));
 
 /**
  * \brief A generic catch-all callback that gets called whenever some
@@ -526,8 +526,8 @@ inline cell InvokeNativeV(AMX_NATIVE native, const char *format,
 
 /// \brief C++ wrapper around sampgdk_InvokeNativeArray()
 inline cell InvokeNativeArray(AMX_NATIVE native, const char *format,
-    void **args) {
-  return sampgdk_InvokeNativeArray(native, format, args);
+    void **args, AMX* amx) {
+  return sampgdk_InvokeNativeArray(native, format, args, amx);
 }
 
 /** @} */

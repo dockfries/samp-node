@@ -6,6 +6,7 @@ namespace sampnode
 	{
 	public:
 		static std::unordered_map<AMX*, amx*> amx_list;
+		static AMX* realAMX;
 
 		static void load(AMX* _amx);
 		static void unload(AMX* _amx);

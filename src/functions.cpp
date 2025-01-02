@@ -15,8 +15,10 @@ static std::pair<std::string, v8::FunctionCallback> sampnodeSpecificFunctions[] 
 	{ "removeListener", sampnode::event::remove_listener },
 	{ "removeEventListener", sampnode::event::remove_listener },
 	{ "registerEvent", sampnode::event::register_event },
-	{ "callNative", sampnode::native::call },
-	{ "callNativeFloat", sampnode::native::call_float },
+	{ "callNative", sampnode::native::call_fake },
+	{ "callNativeFloat", sampnode::native::call_float_fake },
+	{ "callNative2", sampnode::native::call_real },
+	{ "callNativeFloat2", sampnode::native::call_float_real },
 	{ "callPublic", sampnode::callback::call },
 	{ "callPublicFloat", sampnode::callback::call_float },
 	{ "logprint", sampnode::functions::logprint }

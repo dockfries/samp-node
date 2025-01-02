@@ -7,6 +7,7 @@
 #include "common.hpp"
 #include "natives.hpp"
 #include "sampgdk.h"
+#include "amxhandler.hpp"
 
 namespace sampnode
 {
@@ -28,7 +29,27 @@ namespace sampnode
 		return native;
 	}
 
-	void native::call(const v8::FunctionCallbackInfo<v8::Value>& args)
+	void native::call_real(const v8::FunctionCallbackInfo<v8::Value>& args)
+	{
+		native::call(amx::realAMX, args);
+	}
+
+	void native::call_float_real(const v8::FunctionCallbackInfo<v8::Value>& args)
+	{
+		native::call_float(amx::realAMX, args);
+	}
+
+	void native::call_fake(const v8::FunctionCallbackInfo<v8::Value>& args)
+	{
+		native::call(NULL, args);
+	}
+
+	void native::call_float_fake(const v8::FunctionCallbackInfo<v8::Value>& args)
+	{
+		native::call_float(NULL, args);
+	}
+
+	void native::call(AMX* amx, const v8::FunctionCallbackInfo<v8::Value>& args)
 	{
 		v8::Isolate* isolate = args.GetIsolate();
 		v8::Locker locker(isolate);
@@ -229,7 +250,8 @@ namespace sampnode
 			}
 		}
 
-		int32_t retval = sampgdk::InvokeNativeArray(native, str_format, params);
+
+		int32_t retval = sampgdk::InvokeNativeArray(native, str_format, params, amx);
 
 		if (vars > 0 || strs > 0)
 		{
@@ -334,7 +356,7 @@ namespace sampnode
 		}
 	}
 
-	void native::call_float(const v8::FunctionCallbackInfo<v8::Value>& args)
+	void native::call_float(AMX* amx, const v8::FunctionCallbackInfo<v8::Value>& args)
 	{
 		v8::Isolate* isolate = args.GetIsolate();
 		v8::Locker locker(isolate);
@@ -535,7 +557,7 @@ namespace sampnode
 			}
 		}
 
-		int32_t retval = sampgdk::InvokeNativeArray(native, str_format, params);
+		int32_t retval = sampgdk::InvokeNativeArray(native, str_format, params, amx);
 
 		if (vars > 0 || strs > 0)
 		{

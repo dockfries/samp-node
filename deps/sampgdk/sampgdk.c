@@ -1101,9 +1101,9 @@ AMX_NATIVE sampgdk_native_find_flexible(const char *name, AMX_NATIVE current);
 const AMX_NATIVE_INFO *sampgdk_native_get_natives(int *number);
 
 cell sampgdk_native_call(AMX_NATIVE native, cell *params);
-cell sampgdk_native_invoke(AMX_NATIVE native, const char *format, va_list args);
+cell sampgdk_native_invoke(AMX_NATIVE native, const char *format, va_list args, AMX* amx);
 cell sampgdk_native_invoke_array(
-    AMX_NATIVE native, const char *format, void **args);
+    AMX_NATIVE native, const char *format, void **args, AMX* amx);
 
 #endif /* !SAMPGDK_INTERNAL_NATIVE_H */
 
@@ -1336,7 +1336,7 @@ SAMPGDK_API(cell, sampgdk_InvokeNative(AMX_NATIVE native,
   va_list args;
 
   va_start(args, format);
-  retval = sampgdk_native_invoke(native, format, args);
+  retval = sampgdk_native_invoke(native, format, args, NULL);
   va_end(args);
 
   return retval;
@@ -1344,12 +1344,12 @@ SAMPGDK_API(cell, sampgdk_InvokeNative(AMX_NATIVE native,
 
 SAMPGDK_API(cell, sampgdk_InvokeNativeV(AMX_NATIVE native,
                                         const char *format, va_list args)) {
-  return sampgdk_native_invoke(native, format, args);
+  return sampgdk_native_invoke(native, format, args, NULL);
 }
 
 SAMPGDK_API(cell, sampgdk_InvokeNativeArray(AMX_NATIVE native,
-                                            const char *format, void **args)) {
-  return sampgdk_native_invoke_array(native, format, args);
+                                            const char *format, void **args, AMX* amx)) {
+  return sampgdk_native_invoke_array(native, format, args, amx);
 }
 
 #include <assert.h>
@@ -1526,7 +1526,7 @@ cell sampgdk_native_call(AMX_NATIVE native, cell *params) {
 
 cell sampgdk_native_invoke(AMX_NATIVE native,
                            const char *format,
-                           va_list args) {
+                           va_list args, AMX* amx) {
   cell i = 0;
   const char *format_ptr = format;
   unsigned char args_copy[_SAMPGDK_NATIVE_MAX_ARGS *
@@ -1566,12 +1566,14 @@ cell sampgdk_native_invoke(AMX_NATIVE native,
     format_ptr++;
   }
 
-  return sampgdk_native_invoke_array(native, format, args_array);
+  return sampgdk_native_invoke_array(native, format, args_array, amx);
 }
 
 cell sampgdk_native_invoke_array(AMX_NATIVE native, const char *format,
-                                 void **args) {
-  AMX *amx = sampgdk_fakeamx_amx();
+                                 void **args, AMX* amx) {
+  if(amx == NULL) {
+    amx = sampgdk_fakeamx_amx();
+  }
   const char *format_ptr = format;
   cell i = 0;
   cell params[_SAMPGDK_NATIVE_MAX_ARGS + 1];

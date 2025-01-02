@@ -69,6 +69,19 @@ PLUGIN_EXPORT bool PLUGIN_CALL Load(void** ppData)
 PLUGIN_EXPORT int PLUGIN_CALL AmxLoad(AMX* amx)
 {
 	sampnode::amx::load(amx);
+	if (!sampnode::amx::realAMX)
+	{
+		cell amx_addr{};
+		if (amx_FindPubVar(amx, "_polyfill_is_gamemode", &amx_addr) == AMX_ERR_NONE)
+		{
+			cell *phys_addr{};
+			int get_addr_ret = amx_GetAddr(amx, amx_addr, &phys_addr);
+			if (get_addr_ret == AMX_ERR_NONE && static_cast<bool>(*phys_addr))
+			{
+				sampnode::amx::realAMX = amx;
+			}
+		}
+	}
 	return amx_Register(amx, native_list, -1);;
 }
 
@@ -82,5 +95,9 @@ PLUGIN_EXPORT void PLUGIN_CALL Unload()
 PLUGIN_EXPORT int PLUGIN_CALL AmxUnload(AMX* amx)
 {
 	sampnode::amx::unload(amx);
+	if (amx == sampnode::amx::realAMX)
+	{
+		sampnode::amx::realAMX = NULL;
+	}
 	return 1;
 }
