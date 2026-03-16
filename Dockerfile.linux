@@ -1,0 +1,35 @@
+FROM ubuntu:22.04
+
+# Install exact same packages
+RUN apt-get update && \
+    apt-get install -y \
+    build-essential \
+    g++-multilib \
+    cmake \
+    ninja-build \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy source code
+WORKDIR /work
+COPY . .
+
+# Build arguments (matches CI variables)
+ARG PLUGIN_VERSION
+
+# Build steps
+RUN mkdir -p build && \
+    cd build && \
+    cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DPLUGIN_VERSION=${PLUGIN_VERSION} \
+    -G Ninja && \
+    cmake --build . --parallel $(nproc)
+
+# Package artifacts
+RUN cd build && \
+    cpack
+
+# Final setup
+CMD mkdir -p /work/releases && \
+    mv build/cpack/*.tar.gz /work/releases/samp-node-linux.tar.gz
