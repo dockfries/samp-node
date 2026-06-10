@@ -98,7 +98,7 @@ namespace sampnode
 				v8::Local<v8::Array> jsArray = v8::Array::New(isolate, size);
 				for (int j = 0; j < size; j++)
 				{
-					jsArray->Set(ctx, j, v8::Integer::New(isolate, static_cast<uint32_t>(array[j])));
+					jsArray->Set(ctx, j, v8::Integer::New(isolate, static_cast<uint32_t>(array[j]))).Check();
 				}
 				argv[i] = jsArray;
 				paramOffset++;
@@ -126,7 +126,7 @@ namespace sampnode
 				v8::Local<v8::Array> jsArray = v8::Array::New(isolate, size);
 				for (int j = 0; j < size; j++)
 				{
-					jsArray->Set(ctx, j, v8::Integer::New(isolate, amx_ctof(array[j])));
+					jsArray->Set(ctx, j, v8::Integer::New(isolate, amx_ctof(array[j]))).Check();
 				}
 				argv[i] = jsArray;
 				paramOffset++;
@@ -404,7 +404,7 @@ namespace sampnode
 			v8::TryCatch eh(isolate);
 
 			v8::Local<v8::Function> function = listener.function.Get(isolate);
-			function->Call(ctx, ctx->Global(), argCount, args);
+			function->Call(ctx, ctx->Global(), argCount, args).ToLocalChecked();
 
 			if (eh.HasCaught())
 			{

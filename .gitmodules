@@ -5,3 +5,6 @@
 	path = deps/json
 	url = https://github.com/nlohmann/json.git
 	shallow = true
+[submodule "deps/samp-plugin-sdk"]
+	path = deps/samp-plugin-sdk
+	url = git@github.com:AmyrAhmady/samp-plugin-sdk.git

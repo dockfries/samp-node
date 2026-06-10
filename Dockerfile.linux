@@ -1,13 +1,17 @@
 FROM ubuntu:22.04
 
-# Install exact same packages
+ARG PLUGIN_ARCH=x86
+
+# Install packages based on target architecture
 RUN apt-get update && \
     apt-get install -y \
     build-essential \
-    g++-multilib \
     cmake \
     ninja-build \
     pkg-config \
+    && if [ "$PLUGIN_ARCH" = "x86" ]; then \
+        apt-get install -y g++-multilib; \
+    fi \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy source code
@@ -16,6 +20,7 @@ COPY . .
 
 # Build arguments (matches CI variables)
 ARG PLUGIN_VERSION
+ARG PLUGIN_ARCH=x86
 
 # Build steps
 RUN mkdir -p build && \
@@ -23,6 +28,7 @@ RUN mkdir -p build && \
     cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
     -DPLUGIN_VERSION=${PLUGIN_VERSION} \
+    -DPLUGIN_ARCH=${PLUGIN_ARCH} \
     -G Ninja && \
     cmake --build . --parallel $(nproc)
 

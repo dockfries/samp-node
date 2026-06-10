@@ -120,6 +120,7 @@ samp.on("OnPlayerDisconnect", (playerid) => {
 | `s`        | string                                                                       |
 | `a`        | array of integers                                                            |
 | `v`        | array of floats                                                              |
+| `r`        | variadic reference — auto-detects JS type: `int` / `float` / `bool` / `string` / `array` (empty arrays pass 0) |
 | `I, D`     | (Return value) integer                                                       |
 | `F`        | (Return value) float                                                         |
 | `S`        | (Return value) string                                                        |

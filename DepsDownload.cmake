@@ -1,14 +1,6 @@
 include(CheckTypeSize)
 check_type_size("void*" SIZEOF_VOID_P BUILTIN_TYPES_ONLY)
 
-if(WIN32)
-    if(NOT SIZEOF_VOID_P EQUAL 4)
-        message(FATAL_ERROR "Only 32-bit builds are supported on Windows. Detected 64-bit.")
-    endif()
-elseif(NOT UNIX)
-    message(FATAL_ERROR "Unsupported operating system.")
-endif()
-
 # Set this to false, when using a custom nodejs build for testing
 set(__deps_check_enabled true)
 
@@ -55,16 +47,36 @@ function(download_deps)
     
     set(base_path "${PROJECT_SOURCE_DIR}/deps/node/lib/Release")
     get_os(current_os)
-    set(target_path "${base_path}/${current_os}")
+
+    if(PLUGIN_ARCH STREQUAL "x64")
+        set(arch_tag "64")
+        set(arch_suffix "-x64")
+    else()
+        set(arch_tag "")
+        set(arch_suffix "-x86")
+    endif()
+
+    set(target_path "${base_path}/${current_os}${arch_tag}")
     
     file(MAKE_DIRECTORY "${target_path}")
     
     if(current_os STREQUAL "win")
-        message(STATUS "Downloading Windows 32-bit dependencies...")
-        download_file(${NODE_LIB_WIN} "${target_path}" ${NODE_LIB_WIN})
-        download_file(${NODE_LIB_DLL} "${target_path}" ${NODE_LIB_DLL})
+        if(NOT EXISTS "${target_path}/${NODE_LIB_WIN}")
+            message(STATUS "Downloading Windows ${PLUGIN_ARCH} dependencies...")
+            set(pkg_name "libnode-windows${arch_suffix}.zip")
+            set(pkg_path "${PROJECT_SOURCE_DIR}/deps/node/${pkg_name}")
+            download_file(${pkg_name} "${PROJECT_SOURCE_DIR}/deps/node" ${pkg_name})
+            message(STATUS "Extracting ${pkg_name}...")
+            file(ARCHIVE_EXTRACT INPUT "${pkg_path}" DESTINATION "${target_path}")
+        endif()
     else()  # linux
-        message(STATUS "Downloading Linux 32-bit dependencies...")
-        download_file(${NODE_LIB_LINUX} "${target_path}" ${NODE_LIB_LINUX})
+        if(NOT EXISTS "${target_path}/${NODE_LIB_LINUX}")
+            message(STATUS "Downloading Linux ${PLUGIN_ARCH} dependencies...")
+            set(pkg_name "libnode-linux${arch_suffix}.tar.gz")
+            set(pkg_path "${PROJECT_SOURCE_DIR}/deps/node/${pkg_name}")
+            download_file(${pkg_name} "${PROJECT_SOURCE_DIR}/deps/node" ${pkg_name})
+            message(STATUS "Extracting ${pkg_name}...")
+            file(ARCHIVE_EXTRACT INPUT "${pkg_path}" DESTINATION "${target_path}")
+        endif()
     endif()
 endfunction()

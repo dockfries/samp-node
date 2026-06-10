@@ -1,6 +1,6 @@
 #include <string>
 #include <unordered_map>
-#include "amx/amx2.h"
+#include <vector>
 #include "common.hpp"
 #include "natives.hpp"
 #include "sampgdk.h"
@@ -54,13 +54,17 @@ namespace sampnode
 		}
 
 		void *params[32];
-		cell param_value[20];
+		cell param_value[32];
 		int param_size[32];
 		int j = 0;
 		int k = 2;
 		int vars = 0;
 		int strs = 0;
 		int strv = 0;
+
+		bool variadic = false;
+		int variadic_count = 0;
+		std::vector<void *> variadic_allocs;
 
 		std::string str_format;
 		for (char c : format)
@@ -211,10 +215,100 @@ namespace sampnode
 				vars++;
 			}
 			break;
+
+			case 'r':
+				variadic = true;
+				break;
+			}
+			if (variadic)
+				break;
+		}
+
+		if (variadic)
+		{
+			for (; k < args.Length(); k++, j++)
+			{
+				if (args[k]->IsBoolean())
+				{
+					param_value[j] = args[k]->BooleanValue(isolate) ? 1 : 0;
+				}
+				else if (args[k]->IsInt32())
+				{
+					param_value[j] = args[k]->Int32Value(_context).ToChecked();
+				}
+				else if (args[k]->IsNumber())
+				{
+					float fval = static_cast<float>(args[k]->NumberValue(_context).ToChecked());
+					param_value[j] = amx_ftoc(fval);
+				}
+				else if (args[k]->IsString())
+				{
+					v8::String::Utf8Value _str(isolate, args[k]);
+					std::string_view sv(*_str);
+					char *mystr = new char[sv.length() + 1];
+					std::copy(sv.begin(), sv.end(), mystr);
+					mystr[sv.length()] = '\0';
+					params[j] = static_cast<void *>(mystr);
+					variadic_allocs.push_back(mystr);
+					str_format += 's';
+					variadic_count++;
+					continue;
+				}
+				else if (args[k]->IsArray())
+				{
+					v8::Local<v8::Array> a = v8::Local<v8::Array>::Cast(args[k]);
+					size_t size = a->Length();
+
+					if (size == 0)
+					{
+						param_value[j] = 0;
+						params[j] = static_cast<void *>(&param_value[j]);
+						str_format += 'r';
+						variadic_count++;
+						continue;
+					}
+
+					bool is_float = false;
+					auto first = a->Get(_context, 0).ToLocalChecked();
+					is_float = first->IsNumber() && !first->IsInt32();
+
+					cell *value = new cell[size];
+					variadic_allocs.push_back(value);
+					for (size_t b = 0; b < size; b++)
+					{
+						auto elem = a->Get(_context, b).ToLocalChecked();
+						if (is_float)
+						{
+							float fval = static_cast<float>(elem->NumberValue(_context).ToChecked());
+							value[b] = amx_ftoc(fval);
+						}
+						else
+						{
+							value[b] = elem->Int32Value(_context).ToChecked();
+						}
+					}
+
+					str_format += "a[" + std::to_string(size) + "]";
+					params[j] = static_cast<void *>(value);
+					variadic_count++;
+					continue;
+				}
+				else
+				{
+					param_value[j] = 0;
+				}
+				params[j] = static_cast<void *>(&param_value[j]);
+				str_format += 'r';
+				variadic_count++;
 			}
 		}
 
 		int32_t retval = sampgdk::InvokeNativeArray(native, str_format.c_str(), params);
+
+		for (auto *ptr : variadic_allocs)
+		{
+			delete[] static_cast<char *>(ptr);
+		}
 
 		if (vars > 0 || strs > 0)
 		{
@@ -248,9 +342,9 @@ namespace sampnode
 					cell *prams = static_cast<cell *>(params[j]);
 					for (int c = 0; c < size; c++)
 					{
-						rArr->Set(_context, c, v8::Integer::New(isolate, prams[c]));
+						rArr->Set(_context, c, v8::Integer::New(isolate, prams[c])).Check();
 					}
-					arr->Set(_context, var_index++, rArr);
+					arr->Set(_context, var_index++, rArr).Check();
 					delete[] static_cast<char *>(params[j++]);
 				}
 				break;
@@ -262,9 +356,9 @@ namespace sampnode
 					v8::Local<v8::Array> rArr = v8::Array::New(isolate, size);
 					for (int c = 0; c < size; c++)
 					{
-						rArr->Set(_context, c, v8::Number::New(isolate, amx_ctof(param_array[c])));
+						rArr->Set(_context, c, v8::Number::New(isolate, amx_ctof(param_array[c]))).Check();
 					}
-					arr->Set(_context, var_index++, rArr);
+					arr->Set(_context, var_index++, rArr).Check();
 					delete[] static_cast<char *>(params[j++]);
 				}
 				break;
@@ -272,14 +366,14 @@ namespace sampnode
 				case 'I':
 				{
 					int val = *static_cast<cell *>(params[j++]);
-					arr->Set(_context, var_index++, v8::Integer::New(isolate, val));
+					arr->Set(_context, var_index++, v8::Integer::New(isolate, val)).Check();
 				}
 				break;
 
 				case 'F':
 				{
 					float val = amx_ctof(*static_cast<cell *>(params[j++]));
-					arr->Set(_context, var_index++, v8::Number::New(isolate, val));
+					arr->Set(_context, var_index++, v8::Number::New(isolate, val)).Check();
 				}
 				break;
 
@@ -288,16 +382,20 @@ namespace sampnode
 					size_t s_len = param_size[j];
 					char *s_str = static_cast<char *>(params[j]);
 					s_str[s_len - 1] = '\0';
-					arr->Set(_context, var_index++, v8::String::NewFromUtf8(isolate, s_str).ToLocalChecked());
+					arr->Set(_context, var_index++, v8::String::NewFromUtf8(isolate, s_str).ToLocalChecked()).Check();
 					delete[] static_cast<char *>(params[j++]);
 				}
 				break;
+
+				case 'r':
+					j += variadic_count;
+					break;
 				}
 			}
 
 			if (var_index >= 1)
 			{
-				arr->Set(_context, var_index, v8::Integer::New(isolate, retval));
+				arr->Set(_context, var_index, v8::Integer::New(isolate, retval)).Check();
 				args.GetReturnValue().Set(arr);
 			}
 			else
