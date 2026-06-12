@@ -8,7 +8,7 @@ set(NODE_LIB_VERSION "127")
 set(NODE_LIB_WIN "libnode.lib")
 set(NODE_LIB_DLL "libnode.dll")
 set(NODE_LIB_LINUX "libnode.so.${NODE_LIB_VERSION}")
-set(DEPS_URL_BASE "https://github.com/dockfries/samp-node/releases/download/${PLUGIN_VERSION}")
+set(DEPS_URL_BASE "https://github.com/dockfries/samp-node/releases/download/2.6.1")
 
 function(download_file name path url_path)
     if(NOT EXISTS "${path}/${name}")

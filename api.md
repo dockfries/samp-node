@@ -120,7 +120,7 @@ samp.on("OnPlayerDisconnect", (playerid) => {
 | `s`        | string                                                                       |
 | `a`        | array of integers                                                            |
 | `v`        | array of floats                                                              |
-| `r`        | variadic reference — auto-detects JS type: `int` / `float` / `bool` / `string` / `array` (empty arrays pass 0) |
+| `r[...]`  | variadic — `r` followed by `[types]` specifies each variadic param's type manually, e.g. `r[siF]` = string, int, float output. Supports all specifiers inside `[]`. |
 | `I, D`     | (Return value) integer                                                       |
 | `F`        | (Return value) float                                                         |
 | `S`        | (Return value) string                                                        |
