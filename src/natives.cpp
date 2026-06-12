@@ -235,6 +235,8 @@ namespace sampnode
 
 		if (variadic)
 		{
+			bool pendingSize = false;
+
 			for (char vc : variadic_types)
 			{
 				switch (vc)
@@ -244,8 +246,12 @@ namespace sampnode
 				{
 					param_value[j] = args[k]->Int32Value(_context).ToChecked();
 					params[j] = static_cast<void *>(&param_value[j]);
-					j++; k++;
-					str_format += 'r';
+					k++;
+					if (!pendingSize) {
+						j++;
+						str_format += 'r';
+					}
+					pendingSize = false;
 				}
 				break;
 
@@ -254,8 +260,12 @@ namespace sampnode
 					float fval = static_cast<float>(args[k]->NumberValue(_context).ToChecked());
 					param_value[j] = amx_ftoc(fval);
 					params[j] = static_cast<void *>(&param_value[j]);
-					j++; k++;
-					str_format += 'r';
+					k++;
+					if (!pendingSize) {
+						j++;
+						str_format += 'r';
+					}
+					pendingSize = false;
 				}
 				break;
 
@@ -268,8 +278,12 @@ namespace sampnode
 					mystr[sv.length()] = '\0';
 					params[j] = static_cast<void *>(mystr);
 					variadic_allocs.push_back(mystr);
-					j++; k++;
-					str_format += 's';
+					k++;
+					if (!pendingSize) {
+						j++;
+						str_format += 's';
+					}
+					pendingSize = false;
 				}
 				break;
 
@@ -289,6 +303,7 @@ namespace sampnode
 					str_format += "a[" + std::to_string(size) + "]";
 					params[j] = static_cast<void *>(value);
 					j++; k++;
+					pendingSize = false;
 				}
 				break;
 
@@ -311,6 +326,7 @@ namespace sampnode
 					str_format += "a[" + std::to_string(size) + "]";
 					params[j] = static_cast<void *>(value);
 					j++; k++;
+					pendingSize = false;
 				}
 				break;
 
@@ -345,6 +361,7 @@ namespace sampnode
 					j++;
 					vars++;
 					str_format += "A[" + std::to_string(size) + "]";
+					pendingSize = true;
 				}
 				break;
 
@@ -363,6 +380,7 @@ namespace sampnode
 					j++;
 					vars++;
 					str_format += "A[" + std::to_string(size) + "]";
+					pendingSize = true;
 				}
 				break;
 
@@ -478,6 +496,8 @@ namespace sampnode
 
 				case 'r':
 				{
+					bool pendingSize = false;
+
 					for (char vc : variadic_types)
 					{
 						switch (vc)
@@ -488,7 +508,9 @@ namespace sampnode
 						case 's':
 						case 'a':
 						case 'v':
-							j++;
+							if (!pendingSize)
+								j++;
+							pendingSize = false;
 							break;
 						case 'I':
 						case 'D':
@@ -512,6 +534,7 @@ namespace sampnode
 								rArr->Set(_context, c, v8::Integer::New(isolate, prams[c])).Check();
 							arr->Set(_context, var_index++, rArr).Check();
 							j++;
+							pendingSize = true;
 						}
 						break;
 						case 'V':
@@ -523,6 +546,7 @@ namespace sampnode
 								rArr->Set(_context, c, v8::Number::New(isolate, amx_ctof(param_array[c]))).Check();
 							arr->Set(_context, var_index++, rArr).Check();
 							j++;
+							pendingSize = true;
 						}
 						break;
 						case 'S':
