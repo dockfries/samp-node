@@ -281,11 +281,11 @@ namespace sampnode
 					for (unsigned int i = 0; i < funcArray->Length(); i++)
 					{
 						const v8::Local<v8::Function> &function = funcArray->Get(_context, i).ToLocalChecked().As<v8::Function>();
-						for (auto &element : _event->functionList)
+						for (auto &elementPtr : _event->functionList)
 						{
-							if (element.context == _context && element.function.Get(isolate) == function)
+							if (elementPtr->context == _context && elementPtr->function.Get(isolate) == function)
 							{
-								_event->remove(element);
+								_event->remove(*elementPtr);
 								break;
 							}
 						}
@@ -294,11 +294,11 @@ namespace sampnode
 				else
 				{
 					v8::Local<v8::Function> function = v8::Local<v8::Function>::Cast(info[1]);
-					for (auto &element : _event->functionList)
+					for (auto &elementPtr : _event->functionList)
 					{
-						if (element.context == _context && element.function.Get(isolate) == function)
+						if (elementPtr->context == _context && elementPtr->function.Get(isolate) == function)
 						{
-							_event->remove(element);
+							_event->remove(*elementPtr);
 							break;
 						}
 					}
@@ -308,11 +308,11 @@ namespace sampnode
 			{
 				auto copiedFunctionList = _event->functionList;
 
-				for (auto &element : copiedFunctionList)
+				for (auto &elementPtr : copiedFunctionList)
 				{
-					if (element.context == _context)
+					if (elementPtr->context == _context)
 					{
-						_event->remove(element);
+						_event->remove(*elementPtr);
 					}
 				}
 			}
@@ -337,7 +337,7 @@ namespace sampnode
 	event::event(const std::string &eventName, const std::string &param_types)
 			: name(eventName),
 				paramTypes(param_types),
-				functionList(std::vector<EventListener_t>())
+				functionList()
 	{
 	}
 
@@ -354,9 +354,9 @@ namespace sampnode
 		v8::Isolate *isolate = function->GetIsolate();
 
 		bool result = std::any_of(functionList.cbegin(), functionList.cend(),
-															[&function, &isolate](const EventListener_t &listener)
+															[&function, &isolate](const std::shared_ptr<EventListener_t> &listener)
 															{
-																return listener.function.Get(isolate) == function;
+																return listener->function.Get(isolate) == function;
 															});
 
 		if (result)
@@ -365,7 +365,7 @@ namespace sampnode
 		}
 
 		functionList.push_back(
-				EventListener_t(
+				std::make_shared<EventListener_t>(
 						isolate,
 						context,
 						function));
@@ -373,7 +373,13 @@ namespace sampnode
 
 	void event::remove(const EventListener_t &eventListener)
 	{
-		functionList.erase(std::remove(functionList.begin(), functionList.end(), eventListener), functionList.end());
+		functionList.erase(
+				std::remove_if(functionList.begin(), functionList.end(),
+						[&eventListener](const std::shared_ptr<EventListener_t> &ptr)
+						{
+							return *ptr == eventListener;
+						}),
+				functionList.end());
 	}
 
 	void event::remove_all()
@@ -383,15 +389,20 @@ namespace sampnode
 
 	void event::call(v8::Local<v8::Value> *args, int argCount)
 	{
-		std::vector<EventListener_t> copiedFunctionList = functionList;
+		auto copiedFunctionList = functionList;
 
-		for (auto &listener : copiedFunctionList)
+		for (auto &listenerPtr : copiedFunctionList)
 		{
-			if (std::find(functionList.begin(), functionList.end(), listener) == functionList.end())
+			if (std::find_if(functionList.begin(), functionList.end(),
+						[&listenerPtr](const std::shared_ptr<EventListener_t> &ptr)
+						{
+							return ptr == listenerPtr;
+						}) == functionList.end())
 			{
 				continue;
 			}
 
+			auto &listener = *listenerPtr;
 			v8::Isolate *isolate = listener.isolate;
 			v8::Locker v8Locker(isolate);
 			v8::Isolate::Scope isolateScope(isolate);
@@ -422,15 +433,20 @@ namespace sampnode
 
 	void event::call(AMX *amx, cell *params, cell *retval, bool isFromPawnNative)
 	{
-		std::vector<EventListener_t> copiedFunctionList = functionList;
+		auto copiedFunctionList = functionList;
 
-		for (auto &listener : copiedFunctionList)
+		for (auto &listenerPtr : copiedFunctionList)
 		{
-			if (std::find(functionList.begin(), functionList.end(), listener) == functionList.end())
+			if (std::find_if(functionList.begin(), functionList.end(),
+						[&listenerPtr](const std::shared_ptr<EventListener_t> &ptr)
+						{
+							return ptr == listenerPtr;
+						}) == functionList.end())
 			{
 				continue;
 			}
 
+			auto &listener = *listenerPtr;
 			v8::Isolate *isolate = listener.isolate;
 			v8::Locker v8Locker(isolate);
 			v8::Isolate::Scope isolateScope(isolate);

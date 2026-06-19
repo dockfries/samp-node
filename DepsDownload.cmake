@@ -4,7 +4,7 @@ check_type_size("void*" SIZEOF_VOID_P BUILTIN_TYPES_ONLY)
 # Set this to false, when using a custom nodejs build for testing
 set(__deps_check_enabled true)
 
-set(NODE_LIB_VERSION "127")
+set(NODE_LIB_VERSION "137")
 set(NODE_LIB_WIN "libnode.lib")
 set(NODE_LIB_DLL "libnode.dll")
 set(NODE_LIB_LINUX "libnode.so.${NODE_LIB_VERSION}")
@@ -48,13 +48,8 @@ function(download_deps)
     set(base_path "${PROJECT_SOURCE_DIR}/deps/node/lib/Release")
     get_os(current_os)
 
-    if(PLUGIN_ARCH STREQUAL "x64")
-        set(arch_tag "64")
-        set(arch_suffix "-x64")
-    else()
-        set(arch_tag "")
-        set(arch_suffix "-x86")
-    endif()
+    set(arch_tag "64")
+    set(arch_suffix "-x64")
 
     set(target_path "${base_path}/${current_os}${arch_tag}")
     

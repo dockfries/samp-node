@@ -1,6 +1,7 @@
 #pragma once
 #include <unordered_map>
 #include <map>
+#include <memory>
 #include "amx/amx.h"
 #include "node.h"
 #include "v8.h"
@@ -14,43 +15,26 @@ namespace sampnode
 		struct EventListener_t
 		{
 			v8::Isolate *isolate;
-			v8::Persistent<v8::Context, v8::CopyablePersistentTraits<v8::Context>> context;
-			v8::Persistent<v8::Function, v8::CopyablePersistentTraits<v8::Function>> function;
+			v8::Global<v8::Context> context;
+			v8::Global<v8::Function> function;
 
-			EventListener_t(const EventListener_t &listener)
-			{
-				isolate = listener.isolate;
-				context = listener.context;
-				function = listener.function;
-			}
-
-			EventListener_t(
-					v8::Isolate *_isolate,
-					const v8::Persistent<v8::Context, v8::CopyablePersistentTraits<v8::Context>> &_context,
-					const v8::Persistent<v8::Function, v8::CopyablePersistentTraits<v8::Function>> &_function)
-			{
-				isolate = _isolate;
-				v8::Locker locker(isolate);
-				context.Reset(_isolate, _context);
-				function.Reset(_isolate, _function);
-			}
+			EventListener_t(const EventListener_t &) = delete;
+			EventListener_t &operator=(const EventListener_t &) = delete;
+			EventListener_t(EventListener_t &&) = default;
+			EventListener_t &operator=(EventListener_t &&) = default;
 
 			EventListener_t(
 					v8::Isolate *_isolate,
 					const v8::Local<v8::Context> &_context,
 					const v8::Local<v8::Function> &_function)
+					: isolate(_isolate)
 			{
-				isolate = _isolate;
 				v8::Locker locker(isolate);
-				context.Reset(_isolate, _context);
-				function.Reset(_isolate, _function);
+				context = v8::Global<v8::Context>(isolate, _context);
+				function = v8::Global<v8::Function>(isolate, _function);
 			}
 
-			~EventListener_t()
-			{
-				context.Reset();
-				function.Reset();
-			}
+			~EventListener_t() = default;
 
 			bool operator==(const EventListener_t &a) const
 			{
@@ -82,8 +66,7 @@ namespace sampnode
 	private:
 		std::string name;
 		std::string paramTypes;
-		std::vector<EventListener_t> functionList;
-		v8::Persistent<v8::Function, v8::CopyablePersistentTraits<v8::Function>> listener;
+		std::vector<std::shared_ptr<EventListener_t>> functionList;
 	};
 
 	typedef std::unordered_map<std::string, sampnode::event *> eventsContainer;
