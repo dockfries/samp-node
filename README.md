@@ -16,7 +16,14 @@ Forked from [`AmyrAhmady/samp-node`](https://github.com/AmyrAhmady/samp-node)
 
 [check here](./api.md)
 
-## How to pre-build x86 libnode binaries for samp-node
+## How to pre-build libnode binaries for samp-node
+
+### Prerequisites
+
+Building Node.js from source requires [NASM](https://www.nasm.us/) for OpenSSL assembly optimizations.
+
+- **Windows**: Install NASM from <https://www.nasm.us/> and add it to `PATH`.
+- **Linux**: `sudo apt-get install nasm`
 
 ### NodeHeaders
 
@@ -34,11 +41,11 @@ Forked from [`AmyrAhmady/samp-node`](https://github.com/AmyrAhmady/samp-node)
 # x86 (32-bit)
 git clone https://github.com/nodejs/node.git -b v22.x --depth 1
 cd node
-.\vcbuild x86 dll openssl-no-asm
+.\vcbuild x86 dll
 cd out/Release # libnode.dll & libnode.lib
 
 # x64 (64-bit)
-.\vcbuild x64 dll openssl-no-asm
+.\vcbuild x64 dll
 cd out/Release # libnode.dll & libnode.lib
 ```
 
@@ -79,7 +86,7 @@ mv /tmp/node-v22.22.3-linux-x86.tar.gz ~
 ```sh
 git clone https://github.com/nodejs/node.git -b v22.x --depth 1
 cd node
-./configure --shared --openssl-no-asm
+./configure --shared
 make -j$(nproc)
 # out/Release/libnode.so.127 is what you need
 ```
@@ -110,17 +117,18 @@ chmod +x ./build.sh
 ./build.sh 22.22.3 # version
 ```
 
-### linux with cmake (x86 default)
+### linux with cmake
 
 ```sh
 cd samp-node
 mkdir build && cd build
 
+# for 32-bit:
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j$(nproc)
-
 # for 64-bit:
 # cmake -DPLUGIN_ARCH=x64 -DCMAKE_BUILD_TYPE=Release ..
+
+make -j$(nproc)
 ```
 
 ### windows with Visual Studio
@@ -130,15 +138,16 @@ cd samp-node
 mkdir build, releases -ErrorAction SilentlyContinue
 cd build
 
+# for 32-bit:
 cmake .. -A Win32
+# for 64-bit:
+# cmake .. -A x64 -DPLUGIN_ARCH=x64
+
 cmake --build . --config Release
 cpack
 
 cd ..
 Move-Item -Path "build/cpack/*" -Destination "releases/" -Force
-
-# for 64-bit:
-# cmake .. -A x64 -DPLUGIN_ARCH=x64
 ```
 
 ### github actions
