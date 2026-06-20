@@ -28,12 +28,19 @@ Forked from [`AmyrAhmady/samp-node`](https://github.com/AmyrAhmady/samp-node)
 1. download `node-v24.17.0-headers.tar.gz`.
 2. decompress and copy everything under `node/v24.17.0/include/node` to `deps/node/include`.
 
+### Prerequisites
+
+Building Node.js from source requires [NASM](https://www.nasm.us/) for OpenSSL assembly optimizations.
+
+- **Windows**: Install NASM from <https://www.nasm.us/> and add it to `PATH`.
+- **Linux**: `sudo apt-get install nasm`
+
 ### Windows v24
 
 ```sh
 git clone https://github.com/nodejs/node.git -b v24.x --depth 1
 cd node
-.\vcbuild x64 dll openssl-no-asm
+.\vcbuild x64 dll
 cd out/Release # libnode.dll & libnode.lib
 ```
 
@@ -44,9 +51,11 @@ You need to install docker first.
 Recommended to run only in a local virtual machine environment.
 
 ```sh
+sudo apt-get install nasm
+
 git clone https://github.com/nodejs/node.git -b v24.x --depth 1
 cd node
-./configure --shared --openssl-no-asm
+./configure --shared
 make -j$(nproc)
 # out/Release/libnode.so.137 is what you need
 ```
