@@ -57,7 +57,7 @@ PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData)
 
 	sampgdk::Load(ppData);
 	sampnode::nodeImpl.Initialize(mainConfigData);
-	sampnode::nodeImpl.LoadResource("main");
+	sampnode::nodeImpl.LoadResource();
 	return true;
 }
 

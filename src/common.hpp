@@ -5,5 +5,4 @@
 
 #define SAMPGDK_STATIC
 
-extern void **ppPluginData;
 extern void *pAMXFunctions;

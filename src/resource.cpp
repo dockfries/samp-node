@@ -27,16 +27,8 @@ namespace sampnode
 		}
 	}
 
-	Resource::Resource(const std::string &name)
-			: name(name),
-				nodeEnvironment(nullptr, node::FreeEnvironment),
-				asyncContext{}
-	{
-	}
-
 	Resource::Resource()
-			: name(""),
-				nodeEnvironment(nullptr, node::FreeEnvironment),
+			: nodeEnvironment(nullptr, node::FreeEnvironment),
 				asyncContext{}
 	{
 	}
@@ -88,22 +80,23 @@ namespace sampnode
 
 	void Resource::Stop()
 	{
-		{
-			v8::Isolate *isolate = sampnode::nodeImpl.GetIsolate();
-			v8::Context::Scope scope(context.Get(isolate));
-			node::EmitAsyncDestroy(isolate, asyncContext);
-			asyncResource.Reset();
-		}
+		v8::Isolate *isolate = sampnode::nodeImpl.GetIsolate();
+		v8::Locker locker(isolate);
+		v8::Isolate::Scope isolateScope(isolate);
+		v8::HandleScope handleScope(isolate);
 
-		node::Environment *env = nodeEnvironment.get();
-
-		node::EmitProcessBeforeExit(env);
-		node::EmitProcessExit(env);
-
+		v8::Context::Scope scope(context.Get(isolate));
+		node::EmitAsyncDestroy(isolate, asyncContext);
+		asyncResource.Reset();
 		context.Reset();
 
-		node::Stop(env);
-
-		node::FreeEnvironment(env);
+		node::Environment *env = nodeEnvironment.get();
+		if (env)
+		{
+			node::EmitProcessBeforeExit(env);
+			node::EmitProcessExit(env);
+			node::Stop(env);
+			nodeEnvironment.reset();
+		}
 	}
 }

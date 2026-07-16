@@ -1,6 +1,5 @@
-#include <queue>
-#include <unordered_map>
-#include <unordered_set>
+#include <thread>
+#include <chrono>
 #include "config.hpp"
 #include "resource.hpp"
 #include "nodeimpl.hpp"
@@ -33,7 +32,6 @@ void OnMessage(v8::Local<v8::Message> message, v8::Local<v8::Value> error)
 namespace sampnode
 {
 	NodeImpl nodeImpl;
-	std::unordered_map<node::Environment *, std::shared_ptr<Resource>> NodeImpl::resourcesPool;
 	bool NodeImpl::esmLoading;
 
 	NodeImpl::NodeImpl() : nodeData(nullptr, node::FreeIsolateData) {}
@@ -45,9 +43,8 @@ namespace sampnode
 		v8::Isolate::Scope isolateScope(v8Isolate);
 		v8::HandleScope hs(v8Isolate);
 
-		for (auto &res : resourcesPool)
+		if (resource)
 		{
-			std::shared_ptr<Resource> resource = res.second;
 			v8::Local<v8::Context> ctx = resource->GetContext().Get(v8Isolate);
 			v8::Context::Scope contextScope(ctx);
 
@@ -116,49 +113,37 @@ namespace sampnode
 		nodeData.reset(node::CreateIsolateData(v8Isolate, nodeLoop->GetLoop(), v8Platform.get(), arrayBufferAllocator.get()));
 	}
 
-	bool NodeImpl::LoadResource(const std::string &name)
+	bool NodeImpl::LoadResource()
 	{
-		auto resource = std::make_shared<Resource>(name);
+		resource = std::make_shared<Resource>();
 		resource->Init();
-		resourcesPool.emplace(resource->GetEnv(), resource);
-		resourceNamesPool.emplace(name, resource->GetEnv());
 
 		while (esmLoading)
 		{
 			Tick();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 
 		return true;
 	}
 
-	bool NodeImpl::UnloadResource(const std::string &name)
+	bool NodeImpl::UnloadResource()
 	{
-		v8::Locker locker(v8Isolate);
-		v8::Isolate::Scope isolateScope(v8Isolate);
-		v8::HandleScope handleScope(v8Isolate);
-
-		auto it = resourceNamesPool.find(name);
-		if (it == resourceNamesPool.end())
+		if (!resource)
 			return false;
-
-		resourcesPool.erase(it->second);
-		resourceNamesPool.erase(it);
+		resource.reset();
 		return true;
 	}
 
-	bool NodeImpl::ReloadResource(const std::string &name)
+	bool NodeImpl::ReloadResource()
 	{
-		return UnloadResource(name) && LoadResource(name);
+		return UnloadResource() && LoadResource();
 	}
 
 	void NodeImpl::Stop()
 	{
 		esmLoading = false;
-
-		for (auto &resource : resourceNamesPool)
-		{
-			UnloadResource(resource.first);
-		}
+		UnloadResource();
 
 		v8Isolate->Dispose();
 		v8Isolate = nullptr;
