@@ -1,5 +1,6 @@
 #include <thread>
 #include <chrono>
+#include <cstdlib>
 #include "config.hpp"
 #include "resource.hpp"
 #include "nodeimpl.hpp"
@@ -10,18 +11,35 @@ void OnMessage(v8::Local<v8::Message> message, v8::Local<v8::Value> error)
 	v8::Locker locker(isolate);
 	v8::Isolate::Scope isolateScope(isolate);
 	v8::HandleScope handleScope(isolate);
+
+	// Prefer error.stack if available (respects --enable-source-maps)
+	if (error->IsObject()) {
+		v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+		v8::Local<v8::Object> errObj = error.As<v8::Object>();
+		v8::Local<v8::Value> stackVal;
+		if (errObj->Get(ctx, v8::String::NewFromUtf8(isolate, "stack").ToLocalChecked()).ToLocal(&stackVal) && stackVal->IsString()) {
+			v8::String::Utf8Value msgStr(isolate, message->Get());
+			v8::String::Utf8Value stackStr(isolate, stackVal);
+			L_ERROR << *msgStr << "\n"
+							<< *stackStr;
+			return;
+		}
+	}
+
+	// Fallback: raw V8 stack trace
 	v8::String::Utf8Value messageStr(isolate, message->Get());
 	v8::String::Utf8Value errorStr(isolate, error);
 
 	std::stringstream stack;
 	auto stackTrace = message->GetStackTrace();
-
-	for (int i = 0; i < stackTrace->GetFrameCount(); i++)
-	{
-		auto frame = stackTrace->GetFrame(isolate, i);
-		v8::String::Utf8Value sourceStr(isolate, frame->GetScriptNameOrSourceURL());
-		v8::String::Utf8Value functionStr(isolate, frame->GetFunctionName());
-		stack << *sourceStr << "(" << frame->GetLineNumber() << "," << frame->GetColumn() << "): " << (*functionStr ? *functionStr : "") << "\n";
+	if (!stackTrace.IsEmpty()) {
+		for (int i = 0; i < stackTrace->GetFrameCount(); i++)
+		{
+			auto frame = stackTrace->GetFrame(isolate, i);
+			v8::String::Utf8Value sourceStr(isolate, frame->GetScriptNameOrSourceURL());
+			v8::String::Utf8Value functionStr(isolate, frame->GetFunctionName());
+			stack << *sourceStr << "(" << frame->GetLineNumber() << "," << frame->GetColumn() << "): " << (*functionStr ? *functionStr : "") << "\n";
+		}
 	}
 
 	L_ERROR << *messageStr << "\n"
@@ -62,14 +80,19 @@ namespace sampnode
 		mainConfig = config;
 
 		std::vector<std::string> args;
-		if (config.node_flags.empty())
-		{
-			args.push_back("");
-		}
-		else
-		{
-			args = config.node_flags;
-		}
+			args.push_back(""); // argv[0] executable path
+			if (!config.node_flags.empty())
+			{
+				args.insert(args.end(), config.node_flags.begin(), config.node_flags.end());
+			}
+			else
+			{
+				const char* nodeEnv = std::getenv("NODE_ENV");
+					if (nodeEnv && std::strcmp(nodeEnv, "development") == 0)
+					{
+						args.push_back("--enable-source-maps");
+					}
+			}
 
 		for (auto &flag : args)
 		{
