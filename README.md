@@ -16,91 +16,27 @@ Forked from [`AmyrAhmady/samp-node`](https://github.com/AmyrAhmady/samp-node)
 
 [check here](./api.md)
 
-## How to pre-build libnode binaries for samp-node
+## libnode (Node.js shared library)
 
-### Prerequisites
+This project depends on `libnode` — Node.js built as a shared library.
 
-Building Node.js from source requires [NASM](https://www.nasm.us/) for OpenSSL assembly optimizations.
+Pre-built binaries are downloaded automatically from
+[github.com/dockfries/libnode/releases](https://github.com/dockfries/libnode/releases)
+during CMake configuration.
 
-- **Windows**: Install NASM from <https://www.nasm.us/> and add it to `PATH`.
-- **Linux**: `sudo apt-get install nasm`
+See that repository for instructions on building libnode from source for a
+specific Node.js version.
 
-### NodeHeaders
+### Local paths
 
-> example v22.x
-
-[download here](https://nodejs.org/download/release/latest-v22.x/).
-
-0. delete everything under `deps/node/include`.
-1. download `node-v22.22.3-headers.tar.gz`.
-2. decompress and copy everything under `node/v22.22.3/include/node` to `deps/node/include`.
-
-### Windows v22
-
-```sh
-# x86 (32-bit)
-git clone https://github.com/nodejs/node.git -b v22.x --depth 1
-cd node
-.\vcbuild x86 dll
-cd out/Release # libnode.dll & libnode.lib
-
-# x64 (64-bit)
-.\vcbuild x64 dll
-cd out/Release # libnode.dll & libnode.lib
-```
-
-### Linux v22
-
-You need to install docker first.
-
-Recommended to run only in a local virtual machine environment.
-
-#### x86 (32-bit) - requires unofficial-builds for cross-compilation
-
-```sh
-sudo useradd -m -s /bin/bash YOUR_NORMAL_USERNAME
-sudo passwd -d YOUR_NORMAL_USERNAME
-sudo usermod -aG docker YOUR_NORMAL_USERNAME
-su YOUR_NORMAL_USERNAME
-
-rm -fr ~/Devel/unofficial-builds-home
-mkdir -p ~/Devel/unofficial-builds-home
-cd ~/Devel/unofficial-builds-home
-
-git clone https://github.com/dockfries/unofficial-builds
-cd ~/Devel/unofficial-builds-home/unofficial-builds
-chmod +x ./**/*.sh
-
-bin/local_build.sh -r x86_22 -v v22.22.3 # don't forget startWith 'v'
-
-cp ~/Devel/unofficial-builds-home/staging/release/v22.22.3/node-v22.22.3-linux-x86.tar.gz /tmp
-
-su YOUR_SUDO_USER
-mv /tmp/node-v22.22.3-linux-x86.tar.gz ~
-# decompress it, you can see libnode.so.xxx in lib folder, that's what you need only.
-# For version 22, `.so` files end with `127`
-```
-
-#### x64 (64-bit) - build from source
-
-```sh
-git clone https://github.com/nodejs/node.git -b v22.x --depth 1
-cd node
-./configure --shared
-make -j$(nproc)
-# out/Release/libnode.so.127 is what you need
-```
-
-after that, for local build samp-node, pls put your libnode into paths below.
-
-### Local paths for libnode
+If you prefer to build libnode yourself, place the files here:
 
 | Arch | Windows | Linux |
 |------|---------|-------|
 | x86 (default) | `deps/node/lib/Release/win/libnode.lib` + `libnode.dll` | `deps/node/lib/Release/linux/libnode.so.127` |
 | x64 | `deps/node/lib/Release/win64/libnode.lib` + `libnode.dll` | `deps/node/lib/Release/linux64/libnode.so.127` |
 
-for build samp-node, see `.github/workflows/build.yml`.
+Set `-D__deps_check_enabled=false` when running cmake to skip the download.
 
 ## How to build samp-node
 
