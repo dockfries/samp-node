@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.19)
 project(samp-node)
 
 if (NOT PLUGIN_VERSION)
-	set(PLUGIN_VERSION "22.22.3")
+	set(PLUGIN_VERSION "22.23.1")
 endif()
 
 set(PLUGIN_ARCH "x86" CACHE STRING "Target architecture: x86 (32-bit) or x64 (64-bit)")

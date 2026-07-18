@@ -5,7 +5,7 @@ Forked from [`AmyrAhmady/samp-node`](https://github.com/AmyrAhmady/samp-node)
 ## Changes in this fork
 
 - Only can work with [infernus](https://github.com/dockfries/infernus).
-- Update `Node.js` to **v22.22.3**.
+- Update `Node.js` to **v22.23.1**.
 - Both `ESModule` and `CommonJS` supported, depending on the type field of package.json and the bundler output format.
 - Only `entry_file` is used, `resource` config are removed.
 - Removed `samp.fire` to avoid crashes.
@@ -50,7 +50,7 @@ cd samp-node
 git submodule update --init
 
 chmod +x ./build.sh
-./build.sh 22.22.3 # version
+./build.sh 22.23.1 # version
 ```
 
 ### linux with cmake

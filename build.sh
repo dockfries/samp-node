@@ -4,7 +4,7 @@ set -euo pipefail
 # Validate input args
 if [ $# -lt 1 ]; then
   echo "Usage: $0 <plugin_version>"
-  echo "Example: $0 22.22.3"
+  echo "Example: $0 22.23.1"
   exit 1
 fi
 
@@ -13,7 +13,7 @@ PLATFORM_DIR="releases/linux"  # output dir
 
 # Optional: validate version format
 if ! [[ "$PLUGIN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-.+)?$ ]]; then
-  echo "Error: PLUGIN_VERSION '$PLUGIN_VERSION' is not a valid version (e.g. 22.22.3 or 22.22.3-beta)"
+  echo "Error: PLUGIN_VERSION '$PLUGIN_VERSION' is not a valid version (e.g. 22.23.1 or 22.23.1-beta)"
   exit 1
 fi
 

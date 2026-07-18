@@ -15,8 +15,8 @@ set(NODE_REPO "dockfries/libnode" CACHE STRING
     "GitHub repository for libnode releases")
 
 # Tag prefix for the libnode release tag.
-# When pushing tags: git tag v22.22.3  → prefix "v"
-# When using manual dispatch: tag is libnode-v22.22.3  → prefix "libnode-v"
+# When pushing tags: git tag v22.23.1  → prefix "v"
+# When using manual dispatch: tag is libnode-v22.23.1  → prefix "libnode-v"
 set(NODE_TAG_PREFIX "v" CACHE STRING
     "Prefix for the libnode release tag (e.g. v → v${PLUGIN_VERSION})")
 
