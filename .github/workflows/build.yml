@@ -10,7 +10,7 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: "true"
       - name: install packages
@@ -37,15 +37,16 @@ jobs:
         with:
           files: releases/samp-node-linux-x64.tar.gz
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: samp-node-linux-x64
           path: releases/samp-node-linux-x64.tar.gz
+          archive: false
 
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: "true"
       - name: cmake
@@ -74,7 +75,8 @@ jobs:
         with:
           files: releases/samp-node-windows-x64.zip
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: samp-node-windows-x64
           path: releases/samp-node-windows-x64.zip
+          archive: false

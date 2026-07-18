@@ -11,64 +11,33 @@ Forked from [`AmyrAhmady/samp-node`](https://github.com/AmyrAhmady/samp-node)
 - Removed `samp.fire` to avoid crashes.
 - Building based on `ubuntu-latest` means you may need a higher version of glibc.
 - Updated github workflows.
+- libnode binaries are now downloaded from [`dockfries/libnode`](https://github.com/dockfries/libnode) releases.
 
 ## Api
 
 [check here](./api.md)
 
-## How to pre-build x64 libnode binaries for samp-node
+## libnode (Node.js shared library)
 
-### NodeHeaders
+This project depends on `libnode` — Node.js built as a shared library.
 
-> example v24.x
+Pre-built binaries are downloaded automatically from
+[github.com/dockfries/libnode/releases](https://github.com/dockfries/libnode/releases)
+during CMake configuration.
 
-[download here](https://nodejs.org/download/release/latest-v24.x/).
+See that repository for instructions on building libnode from source for a
+specific Node.js version.
 
-0. delete everything under `deps/node/include`.
-1. download `node-v24.17.0-headers.tar.gz`.
-2. decompress and copy everything under `node/v24.17.0/include/node` to `deps/node/include`.
+### Local paths
 
-### Prerequisites
+If you prefer to build libnode yourself, place the files here:
 
-Building Node.js from source requires [NASM](https://www.nasm.us/) for OpenSSL assembly optimizations.
+| Platform | Path |
+|----------|------|
+| Windows x64 | `deps/node/lib/Release/win64/libnode.lib` + `libnode.dll` |
+| Linux x64 | `deps/node/lib/Release/linux64/libnode.so.137` |
 
-- **Windows**: Install NASM from <https://www.nasm.us/> and add it to `PATH`.
-- **Linux**: `sudo apt-get install nasm`
-
-### Windows v24
-
-```sh
-git clone https://github.com/nodejs/node.git -b v24.x --depth 1
-cd node
-.\vcbuild x64 dll
-cd out/Release # libnode.dll & libnode.lib
-```
-
-### Linux v24
-
-You need to install docker first.
-
-Recommended to run only in a local virtual machine environment.
-
-```sh
-sudo apt-get install nasm
-
-git clone https://github.com/nodejs/node.git -b v24.x --depth 1
-cd node
-./configure --shared
-make -j$(nproc)
-# out/Release/libnode.so.137 is what you need
-```
-
-after that, for local build samp-node, pls put your libnode into paths below.
-
-### Local paths for libnode
-
-| Arch | Windows | Linux |
-|------|---------|-------|
-| x64 | `deps/node/lib/Release/win64/libnode.lib` + `libnode.dll` | `deps/node/lib/Release/linux64/libnode.so.137` |
-
-for build samp-node, see `.github/workflows/build.yml`.
+Then set `-D__deps_check_enabled=false` when running cmake to skip the download.
 
 ## How to build samp-node
 
