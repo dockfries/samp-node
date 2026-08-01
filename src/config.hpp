@@ -12,6 +12,7 @@ namespace sampnode
 		std::string entry_file;
 		std::vector<std::string> node_flags;
 		LogLevel log_level = LogLevel::LOG_FULL;
+		std::string timestamp_format = "%Y-%m-%dT%H:%M:%S%z";
 	};
 
 	class Config
