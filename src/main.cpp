@@ -71,8 +71,8 @@ PLUGIN_EXPORT int PLUGIN_CALL AmxLoad(AMX *amx)
 
 PLUGIN_EXPORT void PLUGIN_CALL Unload()
 {
-	sampgdk::Unload();
 	sampnode::nodeImpl.Stop();
+	sampgdk::Unload();
 	return;
 }
 
