@@ -15,10 +15,6 @@ namespace sampnode
 		{
 			return false;
 		}
-		else
-		{
-			L_INFO << "plugin is using " << path << ".json config file";
-		}
 		return true;
 	}
 

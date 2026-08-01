@@ -55,6 +55,8 @@ PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData)
 
 	Log::Init(mainConfigData.log_level, mainConfigData.timestamp_format);
 
+	L_INFO << "plugin is using samp-node.json config file";
+
 	sampgdk::Load(ppData);
 	sampnode::nodeImpl.Initialize(mainConfigData);
 	sampnode::nodeImpl.LoadResource();
