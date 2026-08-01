@@ -65,7 +65,12 @@ namespace sampnode
 				return;
 
 			v8::String::Utf8Value _str(isolate, info[0]);
-			L_INFO << *_str;
+
+			LogLevel level = LogLevel::LOG_INFO;
+			if (info.Length() > 1 && info[1]->IsNumber())
+				level = static_cast<LogLevel>(info[1]->Int32Value(isolate->GetCurrentContext()).ToChecked());
+
+			Log().Get(level) << *_str;
 		}
 	}
 }
