@@ -69,6 +69,37 @@ new integer = 4;
 new test = SAMPNode_CallEvent("MyTestEvent", array, sizeof(array), integer);
 ```
 
+## Logprint
+
+```js
+samp.logprint(message, logLevel?)
+```
+
+a function to print a message to the samp-node log (`samp-node.log`).
+
+### logLevel
+
+`logLevel` is an optional integer argument matching the plugin's internal log levels:
+
+| value | level     |
+| ----- | --------- |
+| 0     | ERROR     |
+| 1     | WARNING   |
+| 2     | DEBUG     |
+| 3     | INFO      |
+
+Note: this numbering is internal to `logprint` and differs from the `log_level` config key (1: ERROR, 2: WARNING, 3: DEBUG, 4: INFO).
+
+When omitted, it defaults to `INFO` and behaves exactly like before.
+
+#### Examples
+
+```js
+samp.logprint("hello");                   // prints with [INFO] level
+samp.logprint("something went wrong", 0); // prints with [ERROR] level
+samp.logprint("be careful", 1);           // prints with [WARNING] level
+```
+
 ## Native caller
 
 ```js
