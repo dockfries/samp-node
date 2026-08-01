@@ -8,18 +8,20 @@ first of all, you config file should be named `samp-node.json` and placed in you
 
 Now there are two ways to configure your samp-node environment
 
-| key          |   type   | value                                                                                         |
-| ------------ | :------: | --------------------------------------------------------------------------------------------- |
-| `log_level`  | integer  | 1: ERROR, 2: WARNING, 3: DEBUG, 4: INFO. <br /> the higher you set, the more logs you'll see. |
-| `entry_file` |  string  | like `dist/bundle.js`                                                                         |
-| `node_flags` | string[] | like `["--inspect"]`                                                                          |
+| key               |   type   | value                                                                                         |
+| ----------------- | :------: | --------------------------------------------------------------------------------------------- |
+| `log_level`       | integer  | 1: ERROR, 2: WARNING, 3: DEBUG, 4: INFO. <br /> the higher you set, the more logs you'll see. |
+| `timestamp_format` |  string  | time format used in the log (see `strftime` specifiers), e.g. `%Y-%m-%dT%H:%M:%S%z`. <br /> default: `%Y-%m-%dT%H:%M:%S%z` |
+| `entry_file`      |  string  | like `dist/bundle.js`                                                                         |
+| `node_flags`      | string[] | like `["--inspect"]`                                                                          |
 
 examples:
 
 ```json
 {
   "entry_file": "dist/bundle.js",
-  "log_level": 4
+  "log_level": 4,
+  "timestamp_format": "%Y-%m-%dT%H:%M:%S%z"
 }
 ```
 
@@ -95,9 +97,9 @@ When omitted, it defaults to `INFO` and behaves exactly like before.
 #### Examples
 
 ```js
-samp.logprint("hello");                   // prints with [INFO] level
-samp.logprint("something went wrong", 0); // prints with [ERROR] level
-samp.logprint("be careful", 1);           // prints with [WARNING] level
+samp.logprint("hello");                   // prints with [Info] level
+samp.logprint("something went wrong", 0); // prints with [Error] level
+samp.logprint("be careful", 1);           // prints with [Warning] level
 ```
 
 ## Native caller

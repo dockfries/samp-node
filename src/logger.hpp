@@ -22,8 +22,9 @@ class Log
 {
 public:
 	static LogLevel logLevel;
+	static std::string timeFormat;
 
-	static void Init(LogLevel level);
+	static void Init(LogLevel level, const std::string &timeFormat);
 
 	Log();
 	virtual ~Log();

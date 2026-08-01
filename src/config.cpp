@@ -48,7 +48,8 @@ namespace sampnode
 		return Props_t{
 				get_as<std::string>("entry_file"),
 				get_as<std::vector<std::string>>("node_flags"),
-				static_cast<LogLevel>(get_as<int>("log_level"))};
+				static_cast<LogLevel>(get_as<int>("log_level")),
+				get_as<std::string>("timestamp_format")};
 	}
 
 	template <typename T, typename... args>

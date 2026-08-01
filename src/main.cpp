@@ -53,7 +53,7 @@ PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData)
 
 	const sampnode::Props_t &mainConfigData = mainConfig.ReadAsMainConfig();
 
-	Log::Init(mainConfigData.log_level);
+	Log::Init(mainConfigData.log_level, mainConfigData.timestamp_format);
 
 	sampgdk::Load(ppData);
 	sampnode::nodeImpl.Initialize(mainConfigData);

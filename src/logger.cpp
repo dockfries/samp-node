@@ -6,24 +6,16 @@
 #include "config.hpp"
 
 LogLevel Log::logLevel = LogLevel::LOG_FULL;
+std::string Log::timeFormat = "%Y-%m-%dT%H:%M:%S%z";
 
-void Log::Init(LogLevel level)
+void Log::Init(LogLevel level, const std::string &timeFormat)
 {
 	logLevel = level;
 
-	auto now = std::chrono::system_clock::now();
-	auto time = std::chrono::system_clock::to_time_t(now);
-	auto tm = *std::localtime(&time);
+	if (!timeFormat.empty())
+		Log::timeFormat = timeFormat;
 
-	std::ostringstream oss;
-	oss << "[" << std::put_time(&tm, "%d/%m/%Y - %H:%M:%S") << "] -> [PLUGIN] samp-node plugin started...\n";
-
-	std::ofstream file("samp-node.log", std::ofstream::out | std::ofstream::app);
-	if (file.is_open())
-	{
-		file << oss.str();
-		file.close();
-	}
+	L_INFO << "[PLUGIN] samp-node plugin started...";
 }
 
 std::ostringstream &Log::Get(LogLevel level)
@@ -35,8 +27,8 @@ std::ostringstream &Log::Get(LogLevel level)
 		auto time = std::chrono::system_clock::to_time_t(now);
 		auto tm = *std::localtime(&time);
 
-		os << "[" << std::put_time(&tm, "%d/%m/%Y - %H:%M:%S") << "]";
-		os << " -> " << GetLevelName(level) << ": ";
+		os << "[" << std::put_time(&tm, timeFormat.c_str()) << "]";
+		os << " " << GetLevelName(level) << " ";
 		return os;
 	}
 	else
@@ -72,14 +64,14 @@ std::string Log::GetLevelName(LogLevel level)
 	switch (level)
 	{
 	case LogLevel::LOG_ERROR:
-		return "[ERROR]";
+		return "[Error]";
 	case LogLevel::LOG_WARN:
-		return "[WARNING]";
+		return "[Warning]";
 	case LogLevel::LOG_INFO:
-		return "[INFO]";
+		return "[Info]";
 	case LogLevel::LOG_DEBUG:
-		return "[DEBUG]";
+		return "[Debug]";
 	default:
-		return "[LOG_UNKNOWN]";
+		return "[Unknown]";
 	}
 }
