@@ -316,6 +316,7 @@
       "lib/internal/test_runner/reporter/v8-serializer.js",
       "lib/internal/test_runner/runner.js",
       "lib/internal/test_runner/snapshot.js",
+      "lib/internal/test_runner/tag_filter.js",
       "lib/internal/test_runner/test.js",
       "lib/internal/test_runner/tests_stream.js",
       "lib/internal/test_runner/utils.js",
@@ -400,7 +401,6 @@
       "lib/zlib.js"
     ],
     "node_cctest_sources": [
-      "src/node_snapshot_stub.cc",
       "test/cctest/inspector/test_network_requests_buffer.cc",
       "test/cctest/inspector/test_node_protocol.cc",
       "test/cctest/node_test_fixture.cc",
@@ -420,6 +420,7 @@
       "test/cctest/test_node_api.cc",
       "test/cctest/test_node_crypto.cc",
       "test/cctest/test_node_crypto_env.cc",
+      "test/cctest/test_node_ipc_serdes.cc",
       "test/cctest/test_node_postmortem_metadata.cc",
       "test/cctest/test_node_task_runner.cc",
       "test/cctest/test_path.cc",
