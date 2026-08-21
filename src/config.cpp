@@ -1,78 +1,60 @@
-#include <string>
-#include <fstream>
-#include <vector>
+#include "config.hpp"
 #include "json.hpp"
 #include "logger.hpp"
-#include "config.hpp"
+#include <fstream>
+#include <string>
+#include <vector>
 
 using json = nlohmann::json;
 
-namespace sampnode
-{
-	bool Config::ParseFile(const std::string &path)
-	{
-		if (!ParseJsonFile(path))
-		{
-			return false;
-		}
-		return true;
-	}
+namespace sampnode {
+bool Config::ParseFile(const std::string &path) {
+  if (!ParseJsonFile(path)) {
+    return false;
+  }
+  return true;
+}
 
-	bool Config::ParseJsonFile(const std::string &path)
-	{
-		std::ifstream jsonFile(path + ".json");
+bool Config::ParseJsonFile(const std::string &path) {
+  std::ifstream jsonFile(path + ".json");
 
-		if (!jsonFile.good())
-		{
-			L_INFO << "unable to locate JSON config file at " << path + ".json.";
-			return false;
-		}
+  if (!jsonFile.good()) {
+    L_INFO << "unable to locate JSON config file at " << path + ".json.";
+    return false;
+  }
 
-		json object;
-		jsonFile >> object;
+  json object;
+  jsonFile >> object;
 
-		if (!object.is_null())
-		{
-			jsonObject = object;
-			return true;
-		}
-		return false;
-	}
+  if (!object.is_null()) {
+    jsonObject = object;
+    return true;
+  }
+  return false;
+}
 
-	Props_t Config::ReadAsMainConfig()
-	{
-		return Props_t{
-				get_as<std::string>("entry_file"),
-				get_as<std::vector<std::string>>("node_flags"),
-				static_cast<LogLevel>(get_as<int>("log_level")),
-				get_as<std::string>("timestamp_format")};
-	}
+Props_t Config::ReadAsMainConfig() {
+  return Props_t{get_as<std::string>("entry_file"),
+                 get_as<std::vector<std::string>>("node_flags"),
+                 static_cast<LogLevel>(get_as<int>("log_level")),
+                 get_as<std::string>("timestamp_format")};
+}
 
-	template <typename T, typename... args>
-	T Config::get_as(const args &...keys)
-	{
-		std::vector<std::string> _keys = {keys...};
+template <typename T, typename... args> T Config::get_as(const args &...keys) {
+  std::vector<std::string> _keys = {keys...};
 
-		json tempJsonObj = jsonObject;
-		for (auto &key : _keys)
-		{
-			if (!tempJsonObj[key].is_null())
-			{
-				tempJsonObj = tempJsonObj[key];
-			}
-			else
-			{
-				return T();
-			}
-		}
-		return tempJsonObj.get<T>();
-	}
+  json tempJsonObj = jsonObject;
+  for (auto &key : _keys) {
+    if (!tempJsonObj[key].is_null()) {
+      tempJsonObj = tempJsonObj[key];
+    } else {
+      return T();
+    }
+  }
+  return tempJsonObj.get<T>();
+}
 
-	Config::Config()
-	{
-	}
+Config::Config() {}
 
-	Config::~Config()
-	{
-	}
-};
+Config::~Config() {}
+}; // namespace sampnode

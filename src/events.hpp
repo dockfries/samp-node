@@ -1,74 +1,67 @@
 #pragma once
-#include <unordered_map>
-#include <map>
-#include <memory>
 #include "amx/amx.h"
 #include "node.h"
-#include "v8.h"
 #include "uv.h"
+#include "v8.h"
+#include <map>
+#include <memory>
+#include <unordered_map>
 
-namespace sampnode
-{
-	class event
-	{
-	public:
-		struct EventListener_t
-		{
-			v8::Isolate *isolate;
-			v8::Global<v8::Context> context;
-			v8::Global<v8::Function> function;
+namespace sampnode {
+class event {
+public:
+  struct EventListener_t {
+    v8::Isolate *isolate;
+    v8::Global<v8::Context> context;
+    v8::Global<v8::Function> function;
 
-			EventListener_t(const EventListener_t &) = delete;
-			EventListener_t &operator=(const EventListener_t &) = delete;
-			EventListener_t(EventListener_t &&) = default;
-			EventListener_t &operator=(EventListener_t &&) = default;
+    EventListener_t(const EventListener_t &) = delete;
+    EventListener_t &operator=(const EventListener_t &) = delete;
+    EventListener_t(EventListener_t &&) = default;
+    EventListener_t &operator=(EventListener_t &&) = default;
 
-			EventListener_t(
-					v8::Isolate *_isolate,
-					const v8::Local<v8::Context> &_context,
-					const v8::Local<v8::Function> &_function)
-					: isolate(_isolate)
-			{
-				v8::Locker locker(isolate);
-				context = v8::Global<v8::Context>(isolate, _context);
-				function = v8::Global<v8::Function>(isolate, _function);
-			}
+    EventListener_t(v8::Isolate *_isolate,
+                    const v8::Local<v8::Context> &_context,
+                    const v8::Local<v8::Function> &_function)
+        : isolate(_isolate) {
+      v8::Locker locker(isolate);
+      context = v8::Global<v8::Context>(isolate, _context);
+      function = v8::Global<v8::Function>(isolate, _function);
+    }
 
-			~EventListener_t() = default;
+    ~EventListener_t() = default;
 
-			bool operator==(const EventListener_t &a) const
-			{
-				return (this->function == a.function && this->context == a.context);
-			}
-		};
+    bool operator==(const EventListener_t &a) const {
+      return (this->function == a.function && this->context == a.context);
+    }
+  };
 
-		static void on(const v8::FunctionCallbackInfo<v8::Value> &info);
-		static void remove_listener(const v8::FunctionCallbackInfo<v8::Value> &info);
-		static void register_event(const v8::FunctionCallbackInfo<v8::Value> &info);
-		static bool register_event(const std::string &eventName, const std::string &param_types);
-		static cell pawn_call_event(AMX *amx, cell *params);
+  static void on(const v8::FunctionCallbackInfo<v8::Value> &info);
+  static void remove_listener(const v8::FunctionCallbackInfo<v8::Value> &info);
+  static void register_event(const v8::FunctionCallbackInfo<v8::Value> &info);
+  static bool register_event(const std::string &eventName,
+                             const std::string &param_types);
+  static cell pawn_call_event(AMX *amx, cell *params);
 
-		event(const std::string &eventName, const std::string &param_types);
-		event();
-		~event();
+  event(const std::string &eventName, const std::string &param_types);
+  event();
+  ~event();
 
-		void append(const v8::Local<v8::Context> &context, const v8::Local<v8::Function> &function);
-		void remove(const EventListener_t &eventListener);
-		void remove_all();
-		void call(v8::Local<v8::Value> *args, int argCount);
-		void call(AMX *amx, cell *params, cell *retval, bool isFromPawnNative);
+  void append(const v8::Local<v8::Context> &context,
+              const v8::Local<v8::Function> &function);
+  void remove(const EventListener_t &eventListener);
+  void remove_all();
+  void call(v8::Local<v8::Value> *args, int argCount);
+  void call(AMX *amx, cell *params, cell *retval, bool isFromPawnNative);
 
-		std::string get_param_types()
-		{
-			return paramTypes;
-		}
+  std::string get_param_types() { return paramTypes; }
 
-	private:
-		std::string name;
-		std::string paramTypes;
-		std::vector<std::shared_ptr<EventListener_t>> functionList;
-	};
+private:
+  std::string name;
+  std::string paramTypes;
+  std::vector<std::shared_ptr<EventListener_t>> functionList;
+};
 
-	typedef std::unordered_map<std::string, sampnode::event *> eventsContainer;
-	extern eventsContainer events;
-}
+typedef std::unordered_map<std::string, sampnode::event *> eventsContainer;
+extern eventsContainer events;
+} // namespace sampnode
