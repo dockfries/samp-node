@@ -68,6 +68,7 @@ namespace sampnode
 
 			node::CallbackScope callbackScope(v8Isolate, resource->GetAsyncResource(v8Isolate), resource->GetAsyncContext());
 
+      v8Isolate->PerformMicrotaskCheckpoint();
 			uv_run(nodeLoop->GetLoop(), UV_RUN_NOWAIT);
 			v8Isolate->PerformMicrotaskCheckpoint();
 			v8Platform->DrainTasks(v8Isolate);
