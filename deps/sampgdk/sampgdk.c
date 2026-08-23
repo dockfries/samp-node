@@ -229,6 +229,8 @@ int sampgdk_native_init(void);
 int sampgdk_plugin_init(void);
 int sampgdk_timer_init(void);
 int sampgdk_a_http_init(void);
+int sampgdk_a_objects_init(void);
+int sampgdk_a_players_init(void);
 int sampgdk_a_samp_init(void);
 
 int sampgdk_module_init(void) {
@@ -257,6 +259,12 @@ int sampgdk_module_init(void) {
   if ((error = sampgdk_a_http_init()) < 0) {
     return error;
   }
+  if ((error = sampgdk_a_objects_init()) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_a_players_init()) < 0) {
+    return error;
+  }
   if ((error = sampgdk_a_samp_init()) < 0) {
     return error;
   }
@@ -264,6 +272,8 @@ int sampgdk_module_init(void) {
 }
 
 void sampgdk_a_samp_cleanup(void);
+void sampgdk_a_players_cleanup(void);
+void sampgdk_a_objects_cleanup(void);
 void sampgdk_a_http_cleanup(void);
 void sampgdk_timer_cleanup(void);
 void sampgdk_plugin_cleanup(void);
@@ -275,6 +285,8 @@ void sampgdk_amxhooks_cleanup(void);
 
 void sampgdk_module_cleanup(void) {
   sampgdk_a_samp_cleanup();
+  sampgdk_a_players_cleanup();
+  sampgdk_a_objects_cleanup();
   sampgdk_a_http_cleanup();
   sampgdk_timer_cleanup();
   sampgdk_plugin_cleanup();
@@ -1468,8 +1480,9 @@ typedef bool (*sampgdk_callback)(AMX *amx, void *func, cell *retval);
 int sampgdk_callback_register(const char *name, sampgdk_callback handler);
 void sampgdk_callback_unregister(const char *name);
 
-/* Gets the name of the callback with the specified index,
- * similar to amx_GetPublic().
+/* Gets the name of the callback with the specified forged index,
+ * similar to amx_GetPublic(). The index must be one produced by
+ * amxhooks.c (AMX_EXEC_GDK - table position).
  */
 bool sampgdk_callback_get(int index, char **name);
 
@@ -2241,6 +2254,7 @@ SAMPGDK_API(cell, sampgdk_InvokeNativeArray(AMX_NATIVE native,
 #include <stdlib.h>
 #include <string.h>
 
+/* #include "amx.h" */
 /* #include "array.h" */
 /* #include "callback.h" */
 /* #include "init.h" */
@@ -2394,12 +2408,17 @@ bool sampgdk_callback_get(int index, char **name) {
 
   assert(name != NULL);
 
-  if (index < 0 || index >= _sampgdk_callbacks.count) {
+  /* index here is the value passed to amx_Exec() for a forged public
+   * (AMX_EXEC_GDK - table_position); recover the table position.
+   */
+  int pos = AMX_EXEC_GDK - index;
+
+  if (pos < 0 || pos >= _sampgdk_callbacks.count) {
     return false;
   }
 
   callback = (struct _sampgdk_callback_info *)sampgdk_array_get(
-      &_sampgdk_callbacks, index);
+      &_sampgdk_callbacks, pos);
   *name = callback->name;
 
   return true;
@@ -2667,8 +2686,10 @@ static int AMXAPI _sampgdk_amxhooks_FindPublic(AMX *amx,
   }
 
   /* OK, this public officially doesn't exist. Register it in our internal
-   * callback table and return success. The table will allow us to keep track
-   * of forged publics in amx_Exec().
+   * callback table and return success. The forged index is derived from the
+   * table position (4.x behavior), not a name hash: open.mp's AMX executor
+   * does not tolerate the very large negative indices a 30-bit hash would
+   * produce when callers pass the forged index straight to amx_Exec.
    */
   index_internal = sampgdk_callback_register(name, NULL);
   index_real = AMX_EXEC_GDK - index_internal;
@@ -2732,7 +2753,10 @@ static int AMXAPI _sampgdk_amxhooks_Exec(AMX *amx, cell *retval, int index) {
     char *name = NULL;
 
     if (index <= AMX_EXEC_GDK) {
-      sampgdk_callback_get(AMX_EXEC_GDK - index, &name);
+      /* sampgdk_callback_get() expects the raw forged index and recovers
+       * the table position internally (AMX_EXEC_GDK - index).
+       */
+      sampgdk_callback_get(index, &name);
     } else {
       AMX *main_amx = _sampgdk_amxhooks_main_amx;
       AMX_FUNCSTUBNT *publics = (AMX_FUNCSTUBNT *)(main_amx->base +
@@ -3203,39 +3227,16 @@ SAMPGDK_API(const char *, sampgdk_GetVersionString(void)) {
 
 #include "sampgdk.h"
 
-/* #include "internal/callback.h" */
-/* #include "internal/fakeamx.h" */
-/* #include "internal/init.h" */
-/* #include "internal/log.h" */
-/* #include "internal/native.h" */
-/* #include "internal/param.h" */
+/* #include "internal/timer.h" */
 
-typedef void (SAMPGDK_CALLBACK_CALL *OnHTTPResponse_callback)(int index, int response_code, const char * data);
-static bool _OnHTTPResponse(AMX *amx, void *callback, cell *retval) {
-  int index;
-  int response_code;
-  const char * data;
-  sampgdk_param_get_cell(amx, 0, (cell *)&index);
-  sampgdk_param_get_cell(amx, 1, (cell *)&response_code);
-  sampgdk_param_get_string(amx, 2, (char * *)&data);
-  sampgdk_log_debug("OnHTTPResponse(%d, %d, \"%s\")", index, response_code, data);
-  ((OnHTTPResponse_callback)callback)(index, response_code, data);
-  free((void *)data);
-  return true;
+SAMPGDK_NATIVE(int, SetTimer(int interval, bool repeat, TimerCallback callback,
+                             void *param)) {
+  return sampgdk_timer_set(interval, repeat, callback, param);
 }
 
-SAMPGDK_MODULE_INIT(a_http) {
-  int error;
-  if ((error = sampgdk_callback_register("OnHTTPResponse", _OnHTTPResponse)) < 0) {
-    return error;
-  }
-  return 0;
+SAMPGDK_NATIVE(bool, KillTimer(int timerid)) {
+  return sampgdk_timer_kill(timerid) >= 0;
 }
-
-SAMPGDK_MODULE_CLEANUP(a_http) {
-  sampgdk_callback_unregister("OnHTTPResponse");
-}
-
 
 #include "sampgdk.h"
 
@@ -4100,6 +4101,384 @@ static bool _OnPlayerRequestDownload(AMX *amx, void *callback, cell *retval) {
   return !!retval_ != true;
 }
 
+typedef bool (SAMPGDK_CALLBACK_CALL *OnScriptLoadPlayer_callback)(int playerid, bool isEntryScript);
+static bool _OnScriptLoadPlayer(AMX *amx, void *callback, cell *retval) {
+  int playerid;
+  bool isEntryScript;
+  sampgdk_param_get_cell(amx, 0, (cell *)&playerid);
+  sampgdk_param_get_bool(amx, 1, (bool *)&isEntryScript);
+  sampgdk_log_debug("OnScriptLoadPlayer(%d, %d)", playerid, isEntryScript);
+  ((OnScriptLoadPlayer_callback)callback)(playerid, isEntryScript);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnScriptUnloadPlayer_callback)(int playerid, bool isEntryScript);
+static bool _OnScriptUnloadPlayer(AMX *amx, void *callback, cell *retval) {
+  int playerid;
+  bool isEntryScript;
+  sampgdk_param_get_cell(amx, 0, (cell *)&playerid);
+  sampgdk_param_get_bool(amx, 1, (bool *)&isEntryScript);
+  sampgdk_log_debug("OnScriptUnloadPlayer(%d, %d)", playerid, isEntryScript);
+  ((OnScriptUnloadPlayer_callback)callback)(playerid, isEntryScript);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnPlayerEnterGangZone_callback)(int playerid, int zoneid);
+static bool _OnPlayerEnterGangZone(AMX *amx, void *callback, cell *retval) {
+  int playerid;
+  int zoneid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&playerid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&zoneid);
+  sampgdk_log_debug("OnPlayerEnterGangZone(%d, %d)", playerid, zoneid);
+  ((OnPlayerEnterGangZone_callback)callback)(playerid, zoneid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnPlayerLeaveGangZone_callback)(int playerid, int zoneid);
+static bool _OnPlayerLeaveGangZone(AMX *amx, void *callback, cell *retval) {
+  int playerid;
+  int zoneid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&playerid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&zoneid);
+  sampgdk_log_debug("OnPlayerLeaveGangZone(%d, %d)", playerid, zoneid);
+  ((OnPlayerLeaveGangZone_callback)callback)(playerid, zoneid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnPlayerEnterPlayerGangZone_callback)(int playerid, int zoneid);
+static bool _OnPlayerEnterPlayerGangZone(AMX *amx, void *callback, cell *retval) {
+  int playerid;
+  int zoneid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&playerid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&zoneid);
+  sampgdk_log_debug("OnPlayerEnterPlayerGangZone(%d, %d)", playerid, zoneid);
+  ((OnPlayerEnterPlayerGangZone_callback)callback)(playerid, zoneid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnPlayerLeavePlayerGangZone_callback)(int playerid, int zoneid);
+static bool _OnPlayerLeavePlayerGangZone(AMX *amx, void *callback, cell *retval) {
+  int playerid;
+  int zoneid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&playerid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&zoneid);
+  sampgdk_log_debug("OnPlayerLeavePlayerGangZone(%d, %d)", playerid, zoneid);
+  ((OnPlayerLeavePlayerGangZone_callback)callback)(playerid, zoneid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnPlayerClickGangZone_callback)(int playerid, int zoneid);
+static bool _OnPlayerClickGangZone(AMX *amx, void *callback, cell *retval) {
+  int playerid;
+  int zoneid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&playerid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&zoneid);
+  sampgdk_log_debug("OnPlayerClickGangZone(%d, %d)", playerid, zoneid);
+  ((OnPlayerClickGangZone_callback)callback)(playerid, zoneid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnPlayerClickPlayerGangZone_callback)(int playerid, int zoneid);
+static bool _OnPlayerClickPlayerGangZone(AMX *amx, void *callback, cell *retval) {
+  int playerid;
+  int zoneid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&playerid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&zoneid);
+  sampgdk_log_debug("OnPlayerClickPlayerGangZone(%d, %d)", playerid, zoneid);
+  ((OnPlayerClickPlayerGangZone_callback)callback)(playerid, zoneid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnClientCheckResponse_callback)(int playerid, int actionid, int memaddr, int retndata);
+static bool _OnClientCheckResponse(AMX *amx, void *callback, cell *retval) {
+  int playerid;
+  int actionid;
+  int memaddr;
+  int retndata;
+  sampgdk_param_get_cell(amx, 0, (cell *)&playerid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&actionid);
+  sampgdk_param_get_cell(amx, 2, (cell *)&memaddr);
+  sampgdk_param_get_cell(amx, 3, (cell *)&retndata);
+  sampgdk_log_debug("OnClientCheckResponse(%d, %d, %d, %d)", playerid, actionid, memaddr, retndata);
+  ((OnClientCheckResponse_callback)callback)(playerid, actionid, memaddr, retndata);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnPlayerFinishedDownloading_callback)(int playerid, int virtualworld);
+static bool _OnPlayerFinishedDownloading(AMX *amx, void *callback, cell *retval) {
+  int playerid;
+  int virtualworld;
+  sampgdk_param_get_cell(amx, 0, (cell *)&playerid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&virtualworld);
+  sampgdk_log_debug("OnPlayerFinishedDownloading(%d, %d)", playerid, virtualworld);
+  ((OnPlayerFinishedDownloading_callback)callback)(playerid, virtualworld);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCFinishMove_callback)(int npcid);
+static bool _OnNPCFinishMove(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_log_debug("OnNPCFinishMove(%d)", npcid);
+  ((OnNPCFinishMove_callback)callback)(npcid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCCreate_callback)(int npcid);
+static bool _OnNPCCreate(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_log_debug("OnNPCCreate(%d)", npcid);
+  ((OnNPCCreate_callback)callback)(npcid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCDestroy_callback)(int npcid);
+static bool _OnNPCDestroy(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_log_debug("OnNPCDestroy(%d)", npcid);
+  ((OnNPCDestroy_callback)callback)(npcid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCSpawn_callback)(int npcid);
+static bool _OnNPCSpawn(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_log_debug("OnNPCSpawn(%d)", npcid);
+  ((OnNPCSpawn_callback)callback)(npcid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCRespawn_callback)(int npcid);
+static bool _OnNPCRespawn(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_log_debug("OnNPCRespawn(%d)", npcid);
+  ((OnNPCRespawn_callback)callback)(npcid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCWeaponStateChange_callback)(int npcid, int newState, int oldState);
+static bool _OnNPCWeaponStateChange(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  int newState;
+  int oldState;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&newState);
+  sampgdk_param_get_cell(amx, 2, (cell *)&oldState);
+  sampgdk_log_debug("OnNPCWeaponStateChange(%d, %d, %d)", npcid, newState, oldState);
+  ((OnNPCWeaponStateChange_callback)callback)(npcid, newState, oldState);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCTakeDamage_callback)(int npcid, int issuerid, float amount, int weaponid, int bodypart);
+static bool _OnNPCTakeDamage(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  int issuerid;
+  float amount;
+  int weaponid;
+  int bodypart;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&issuerid);
+  sampgdk_param_get_float(amx, 2, (float *)&amount);
+  sampgdk_param_get_cell(amx, 3, (cell *)&weaponid);
+  sampgdk_param_get_cell(amx, 4, (cell *)&bodypart);
+  sampgdk_log_debug("OnNPCTakeDamage(%d, %d, %f, %d, %d)", npcid, issuerid, amount, weaponid, bodypart);
+  ((OnNPCTakeDamage_callback)callback)(npcid, issuerid, amount, weaponid, bodypart);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCGiveDamage_callback)(int npcid, int damagedid, float amount, int weaponid, int bodypart);
+static bool _OnNPCGiveDamage(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  int damagedid;
+  float amount;
+  int weaponid;
+  int bodypart;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&damagedid);
+  sampgdk_param_get_float(amx, 2, (float *)&amount);
+  sampgdk_param_get_cell(amx, 3, (cell *)&weaponid);
+  sampgdk_param_get_cell(amx, 4, (cell *)&bodypart);
+  sampgdk_log_debug("OnNPCGiveDamage(%d, %d, %f, %d, %d)", npcid, damagedid, amount, weaponid, bodypart);
+  ((OnNPCGiveDamage_callback)callback)(npcid, damagedid, amount, weaponid, bodypart);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCDeath_callback)(int npcid, int killerid, int reason);
+static bool _OnNPCDeath(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  int killerid;
+  int reason;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&killerid);
+  sampgdk_param_get_cell(amx, 2, (cell *)&reason);
+  sampgdk_log_debug("OnNPCDeath(%d, %d, %d)", npcid, killerid, reason);
+  ((OnNPCDeath_callback)callback)(npcid, killerid, reason);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCPlaybackStart_callback)(int npcid, int recordid);
+static bool _OnNPCPlaybackStart(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  int recordid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&recordid);
+  sampgdk_log_debug("OnNPCPlaybackStart(%d, %d)", npcid, recordid);
+  ((OnNPCPlaybackStart_callback)callback)(npcid, recordid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCPlaybackEnd_callback)(int npcid, int recordid);
+static bool _OnNPCPlaybackEnd(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  int recordid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&recordid);
+  sampgdk_log_debug("OnNPCPlaybackEnd(%d, %d)", npcid, recordid);
+  ((OnNPCPlaybackEnd_callback)callback)(npcid, recordid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCWeaponShot_callback)(int npcid, int weaponid, int hittype, int hitid, float fX, float fY, float fZ);
+static bool _OnNPCWeaponShot(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  int weaponid;
+  int hittype;
+  int hitid;
+  float fX;
+  float fY;
+  float fZ;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&weaponid);
+  sampgdk_param_get_cell(amx, 2, (cell *)&hittype);
+  sampgdk_param_get_cell(amx, 3, (cell *)&hitid);
+  sampgdk_param_get_float(amx, 4, (float *)&fX);
+  sampgdk_param_get_float(amx, 5, (float *)&fY);
+  sampgdk_param_get_float(amx, 6, (float *)&fZ);
+  sampgdk_log_debug("OnNPCWeaponShot(%d, %d, %d, %d, %f, %f, %f)", npcid, weaponid, hittype, hitid, fX, fY, fZ);
+  ((OnNPCWeaponShot_callback)callback)(npcid, weaponid, hittype, hitid, fX, fY, fZ);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCFinishNodePoint_callback)(int npcid, int nodeid, int pointid);
+static bool _OnNPCFinishNodePoint(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  int nodeid;
+  int pointid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&nodeid);
+  sampgdk_param_get_cell(amx, 2, (cell *)&pointid);
+  sampgdk_log_debug("OnNPCFinishNodePoint(%d, %d, %d)", npcid, nodeid, pointid);
+  ((OnNPCFinishNodePoint_callback)callback)(npcid, nodeid, pointid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCFinishNode_callback)(int npcid, int nodeid);
+static bool _OnNPCFinishNode(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  int nodeid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&nodeid);
+  sampgdk_log_debug("OnNPCFinishNode(%d, %d)", npcid, nodeid);
+  ((OnNPCFinishNode_callback)callback)(npcid, nodeid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCChangeNode_callback)(int npcid, int newnodeid, int oldnodeid);
+static bool _OnNPCChangeNode(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  int newnodeid;
+  int oldnodeid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&newnodeid);
+  sampgdk_param_get_cell(amx, 2, (cell *)&oldnodeid);
+  sampgdk_log_debug("OnNPCChangeNode(%d, %d, %d)", npcid, newnodeid, oldnodeid);
+  ((OnNPCChangeNode_callback)callback)(npcid, newnodeid, oldnodeid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCFinishMovePath_callback)(int npcid, int pathid);
+static bool _OnNPCFinishMovePath(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  int pathid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&pathid);
+  sampgdk_log_debug("OnNPCFinishMovePath(%d, %d)", npcid, pathid);
+  ((OnNPCFinishMovePath_callback)callback)(npcid, pathid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnNPCFinishMovePathPoint_callback)(int npcid, int pathid, int pointid);
+static bool _OnNPCFinishMovePathPoint(AMX *amx, void *callback, cell *retval) {
+  int npcid;
+  int pathid;
+  int pointid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&npcid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&pathid);
+  sampgdk_param_get_cell(amx, 2, (cell *)&pointid);
+  sampgdk_log_debug("OnNPCFinishMovePathPoint(%d, %d, %d)", npcid, pathid, pointid);
+  ((OnNPCFinishMovePathPoint_callback)callback)(npcid, pathid, pointid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnPlayerPickUpPlayerPickup_callback)(int playerid, int pickupid);
+static bool _OnPlayerPickUpPlayerPickup(AMX *amx, void *callback, cell *retval) {
+  int playerid;
+  int pickupid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&playerid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&pickupid);
+  sampgdk_log_debug("OnPlayerPickUpPlayerPickup(%d, %d)", playerid, pickupid);
+  ((OnPlayerPickUpPlayerPickup_callback)callback)(playerid, pickupid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnPickupStreamIn_callback)(int pickupid, int playerid);
+static bool _OnPickupStreamIn(AMX *amx, void *callback, cell *retval) {
+  int pickupid;
+  int playerid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&pickupid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&playerid);
+  sampgdk_log_debug("OnPickupStreamIn(%d, %d)", pickupid, playerid);
+  ((OnPickupStreamIn_callback)callback)(pickupid, playerid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnPickupStreamOut_callback)(int pickupid, int playerid);
+static bool _OnPickupStreamOut(AMX *amx, void *callback, cell *retval) {
+  int pickupid;
+  int playerid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&pickupid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&playerid);
+  sampgdk_log_debug("OnPickupStreamOut(%d, %d)", pickupid, playerid);
+  ((OnPickupStreamOut_callback)callback)(pickupid, playerid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnPlayerPickupStreamIn_callback)(int pickupid, int playerid);
+static bool _OnPlayerPickupStreamIn(AMX *amx, void *callback, cell *retval) {
+  int pickupid;
+  int playerid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&pickupid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&playerid);
+  sampgdk_log_debug("OnPlayerPickupStreamIn(%d, %d)", pickupid, playerid);
+  ((OnPlayerPickupStreamIn_callback)callback)(pickupid, playerid);
+  return true;
+}
+
+typedef bool (SAMPGDK_CALLBACK_CALL *OnPlayerPickupStreamOut_callback)(int pickupid, int playerid);
+static bool _OnPlayerPickupStreamOut(AMX *amx, void *callback, cell *retval) {
+  int pickupid;
+  int playerid;
+  sampgdk_param_get_cell(amx, 0, (cell *)&pickupid);
+  sampgdk_param_get_cell(amx, 1, (cell *)&playerid);
+  sampgdk_log_debug("OnPlayerPickupStreamOut(%d, %d)", pickupid, playerid);
+  ((OnPlayerPickupStreamOut_callback)callback)(pickupid, playerid);
+  return true;
+}
+
 SAMPGDK_MODULE_INIT(a_samp) {
   int error;
   if ((error = sampgdk_callback_register("OnVehicleStreamOut", _OnVehicleStreamOut)) < 0) {
@@ -4133,6 +4512,12 @@ SAMPGDK_MODULE_INIT(a_samp) {
     return error;
   }
   if ((error = sampgdk_callback_register("OnTrailerUpdate", _OnTrailerUpdate)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnScriptUnloadPlayer", _OnScriptUnloadPlayer)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnScriptLoadPlayer", _OnScriptLoadPlayer)) < 0) {
     return error;
   }
   if ((error = sampgdk_callback_register("OnRconLoginAttempt", _OnRconLoginAttempt)) < 0) {
@@ -4180,6 +4565,15 @@ SAMPGDK_MODULE_INIT(a_samp) {
   if ((error = sampgdk_callback_register("OnPlayerRequestClass", _OnPlayerRequestClass)) < 0) {
     return error;
   }
+  if ((error = sampgdk_callback_register("OnPlayerPickupStreamOut", _OnPlayerPickupStreamOut)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnPlayerPickupStreamIn", _OnPlayerPickupStreamIn)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnPlayerPickUpPlayerPickup", _OnPlayerPickUpPlayerPickup)) < 0) {
+    return error;
+  }
   if ((error = sampgdk_callback_register("OnPlayerPickUpPickup", _OnPlayerPickUpPickup)) < 0) {
     return error;
   }
@@ -4187,6 +4581,12 @@ SAMPGDK_MODULE_INIT(a_samp) {
     return error;
   }
   if ((error = sampgdk_callback_register("OnPlayerLeaveRaceCheckpoint", _OnPlayerLeaveRaceCheckpoint)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnPlayerLeavePlayerGangZone", _OnPlayerLeavePlayerGangZone)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnPlayerLeaveGangZone", _OnPlayerLeaveGangZone)) < 0) {
     return error;
   }
   if ((error = sampgdk_callback_register("OnPlayerLeaveCheckpoint", _OnPlayerLeaveCheckpoint)) < 0) {
@@ -4204,6 +4604,9 @@ SAMPGDK_MODULE_INIT(a_samp) {
   if ((error = sampgdk_callback_register("OnPlayerGiveDamage", _OnPlayerGiveDamage)) < 0) {
     return error;
   }
+  if ((error = sampgdk_callback_register("OnPlayerFinishedDownloading", _OnPlayerFinishedDownloading)) < 0) {
+    return error;
+  }
   if ((error = sampgdk_callback_register("OnPlayerExitedMenu", _OnPlayerExitedMenu)) < 0) {
     return error;
   }
@@ -4214,6 +4617,12 @@ SAMPGDK_MODULE_INIT(a_samp) {
     return error;
   }
   if ((error = sampgdk_callback_register("OnPlayerEnterRaceCheckpoint", _OnPlayerEnterRaceCheckpoint)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnPlayerEnterPlayerGangZone", _OnPlayerEnterPlayerGangZone)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnPlayerEnterGangZone", _OnPlayerEnterGangZone)) < 0) {
     return error;
   }
   if ((error = sampgdk_callback_register("OnPlayerEnterCheckpoint", _OnPlayerEnterCheckpoint)) < 0) {
@@ -4243,13 +4652,76 @@ SAMPGDK_MODULE_INIT(a_samp) {
   if ((error = sampgdk_callback_register("OnPlayerClickPlayerTextDraw", _OnPlayerClickPlayerTextDraw)) < 0) {
     return error;
   }
+  if ((error = sampgdk_callback_register("OnPlayerClickPlayerGangZone", _OnPlayerClickPlayerGangZone)) < 0) {
+    return error;
+  }
   if ((error = sampgdk_callback_register("OnPlayerClickPlayer", _OnPlayerClickPlayer)) < 0) {
     return error;
   }
   if ((error = sampgdk_callback_register("OnPlayerClickMap", _OnPlayerClickMap)) < 0) {
     return error;
   }
+  if ((error = sampgdk_callback_register("OnPlayerClickGangZone", _OnPlayerClickGangZone)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnPickupStreamOut", _OnPickupStreamOut)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnPickupStreamIn", _OnPickupStreamIn)) < 0) {
+    return error;
+  }
   if ((error = sampgdk_callback_register("OnObjectMoved", _OnObjectMoved)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCWeaponStateChange", _OnNPCWeaponStateChange)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCWeaponShot", _OnNPCWeaponShot)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCTakeDamage", _OnNPCTakeDamage)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCSpawn", _OnNPCSpawn)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCRespawn", _OnNPCRespawn)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCPlaybackStart", _OnNPCPlaybackStart)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCPlaybackEnd", _OnNPCPlaybackEnd)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCGiveDamage", _OnNPCGiveDamage)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCFinishNodePoint", _OnNPCFinishNodePoint)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCFinishNode", _OnNPCFinishNode)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCFinishMovePathPoint", _OnNPCFinishMovePathPoint)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCFinishMovePath", _OnNPCFinishMovePath)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCFinishMove", _OnNPCFinishMove)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCDestroy", _OnNPCDestroy)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCDeath", _OnNPCDeath)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCCreate", _OnNPCCreate)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnNPCChangeNode", _OnNPCChangeNode)) < 0) {
     return error;
   }
   if ((error = sampgdk_callback_register("OnIncomingConnection", _OnIncomingConnection)) < 0) {
@@ -4265,6 +4737,9 @@ SAMPGDK_MODULE_INIT(a_samp) {
     return error;
   }
   if ((error = sampgdk_callback_register("OnDialogResponse", _OnDialogResponse)) < 0) {
+    return error;
+  }
+  if ((error = sampgdk_callback_register("OnClientCheckResponse", _OnClientCheckResponse)) < 0) {
     return error;
   }
   if ((error = sampgdk_callback_register("OnActorStreamOut", _OnActorStreamOut)) < 0) {
@@ -4288,6 +4763,8 @@ SAMPGDK_MODULE_CLEANUP(a_samp) {
   sampgdk_callback_unregister("OnVehicleDamageStatusUpdate");
   sampgdk_callback_unregister("OnUnoccupiedVehicleUpdate");
   sampgdk_callback_unregister("OnTrailerUpdate");
+  sampgdk_callback_unregister("OnScriptUnloadPlayer");
+  sampgdk_callback_unregister("OnScriptLoadPlayer");
   sampgdk_callback_unregister("OnRconLoginAttempt");
   sampgdk_callback_unregister("OnRconCommand");
   sampgdk_callback_unregister("OnPlayerWeaponShot");
@@ -4303,18 +4780,26 @@ SAMPGDK_MODULE_CLEANUP(a_samp) {
   sampgdk_callback_unregister("OnPlayerRequestSpawn");
   sampgdk_callback_unregister("OnPlayerRequestDownload");
   sampgdk_callback_unregister("OnPlayerRequestClass");
+  sampgdk_callback_unregister("OnPlayerPickupStreamOut");
+  sampgdk_callback_unregister("OnPlayerPickupStreamIn");
+  sampgdk_callback_unregister("OnPlayerPickUpPlayerPickup");
   sampgdk_callback_unregister("OnPlayerPickUpPickup");
   sampgdk_callback_unregister("OnPlayerObjectMoved");
   sampgdk_callback_unregister("OnPlayerLeaveRaceCheckpoint");
+  sampgdk_callback_unregister("OnPlayerLeavePlayerGangZone");
+  sampgdk_callback_unregister("OnPlayerLeaveGangZone");
   sampgdk_callback_unregister("OnPlayerLeaveCheckpoint");
   sampgdk_callback_unregister("OnPlayerKeyStateChange");
   sampgdk_callback_unregister("OnPlayerInteriorChange");
   sampgdk_callback_unregister("OnPlayerGiveDamageActor");
   sampgdk_callback_unregister("OnPlayerGiveDamage");
+  sampgdk_callback_unregister("OnPlayerFinishedDownloading");
   sampgdk_callback_unregister("OnPlayerExitedMenu");
   sampgdk_callback_unregister("OnPlayerExitVehicle");
   sampgdk_callback_unregister("OnPlayerEnterVehicle");
   sampgdk_callback_unregister("OnPlayerEnterRaceCheckpoint");
+  sampgdk_callback_unregister("OnPlayerEnterPlayerGangZone");
+  sampgdk_callback_unregister("OnPlayerEnterGangZone");
   sampgdk_callback_unregister("OnPlayerEnterCheckpoint");
   sampgdk_callback_unregister("OnPlayerEditObject");
   sampgdk_callback_unregister("OnPlayerEditAttachedObject");
@@ -4324,16 +4809,142 @@ SAMPGDK_MODULE_CLEANUP(a_samp) {
   sampgdk_callback_unregister("OnPlayerCommandText");
   sampgdk_callback_unregister("OnPlayerClickTextDraw");
   sampgdk_callback_unregister("OnPlayerClickPlayerTextDraw");
+  sampgdk_callback_unregister("OnPlayerClickPlayerGangZone");
   sampgdk_callback_unregister("OnPlayerClickPlayer");
   sampgdk_callback_unregister("OnPlayerClickMap");
+  sampgdk_callback_unregister("OnPlayerClickGangZone");
+  sampgdk_callback_unregister("OnPickupStreamOut");
+  sampgdk_callback_unregister("OnPickupStreamIn");
   sampgdk_callback_unregister("OnObjectMoved");
+  sampgdk_callback_unregister("OnNPCWeaponStateChange");
+  sampgdk_callback_unregister("OnNPCWeaponShot");
+  sampgdk_callback_unregister("OnNPCTakeDamage");
+  sampgdk_callback_unregister("OnNPCSpawn");
+  sampgdk_callback_unregister("OnNPCRespawn");
+  sampgdk_callback_unregister("OnNPCPlaybackStart");
+  sampgdk_callback_unregister("OnNPCPlaybackEnd");
+  sampgdk_callback_unregister("OnNPCGiveDamage");
+  sampgdk_callback_unregister("OnNPCFinishNodePoint");
+  sampgdk_callback_unregister("OnNPCFinishNode");
+  sampgdk_callback_unregister("OnNPCFinishMovePathPoint");
+  sampgdk_callback_unregister("OnNPCFinishMovePath");
+  sampgdk_callback_unregister("OnNPCFinishMove");
+  sampgdk_callback_unregister("OnNPCDestroy");
+  sampgdk_callback_unregister("OnNPCDeath");
+  sampgdk_callback_unregister("OnNPCCreate");
+  sampgdk_callback_unregister("OnNPCChangeNode");
   sampgdk_callback_unregister("OnIncomingConnection");
   sampgdk_callback_unregister("OnGameModeInit");
   sampgdk_callback_unregister("OnGameModeExit");
   sampgdk_callback_unregister("OnEnterExitModShop");
   sampgdk_callback_unregister("OnDialogResponse");
+  sampgdk_callback_unregister("OnClientCheckResponse");
   sampgdk_callback_unregister("OnActorStreamOut");
   sampgdk_callback_unregister("OnActorStreamIn");
+}
+
+
+#include "sampgdk.h"
+
+/* #include "internal/callback.h" */
+/* #include "internal/fakeamx.h" */
+/* #include "internal/init.h" */
+/* #include "internal/log.h" */
+/* #include "internal/native.h" */
+/* #include "internal/param.h" */
+
+SAMPGDK_MODULE_INIT(a_actor) {
+  return 0;
+}
+
+SAMPGDK_MODULE_CLEANUP(a_actor) {
+}
+
+
+#include "sampgdk.h"
+
+/* #include "internal/callback.h" */
+/* #include "internal/fakeamx.h" */
+/* #include "internal/init.h" */
+/* #include "internal/log.h" */
+/* #include "internal/native.h" */
+/* #include "internal/param.h" */
+
+typedef void (SAMPGDK_CALLBACK_CALL *OnHTTPResponse_callback)(int index, int response_code, const char * data);
+static bool _OnHTTPResponse(AMX *amx, void *callback, cell *retval) {
+  int index;
+  int response_code;
+  const char * data;
+  sampgdk_param_get_cell(amx, 0, (cell *)&index);
+  sampgdk_param_get_cell(amx, 1, (cell *)&response_code);
+  sampgdk_param_get_string(amx, 2, (char * *)&data);
+  sampgdk_log_debug("OnHTTPResponse(%d, %d, \"%s\")", index, response_code, data);
+  ((OnHTTPResponse_callback)callback)(index, response_code, data);
+  free((void *)data);
+  return true;
+}
+
+SAMPGDK_MODULE_INIT(a_http) {
+  int error;
+  if ((error = sampgdk_callback_register("OnHTTPResponse", _OnHTTPResponse)) < 0) {
+    return error;
+  }
+  return 0;
+}
+
+SAMPGDK_MODULE_CLEANUP(a_http) {
+  sampgdk_callback_unregister("OnHTTPResponse");
+}
+
+
+#include "sampgdk.h"
+
+/* #include "internal/callback.h" */
+/* #include "internal/fakeamx.h" */
+/* #include "internal/init.h" */
+/* #include "internal/log.h" */
+/* #include "internal/native.h" */
+/* #include "internal/param.h" */
+
+SAMPGDK_MODULE_INIT(a_objects) {
+  return 0;
+}
+
+SAMPGDK_MODULE_CLEANUP(a_objects) {
+}
+
+
+#include "sampgdk.h"
+
+/* #include "internal/callback.h" */
+/* #include "internal/fakeamx.h" */
+/* #include "internal/init.h" */
+/* #include "internal/log.h" */
+/* #include "internal/native.h" */
+/* #include "internal/param.h" */
+
+SAMPGDK_MODULE_INIT(a_players) {
+  return 0;
+}
+
+SAMPGDK_MODULE_CLEANUP(a_players) {
+}
+
+
+#include "sampgdk.h"
+
+/* #include "internal/callback.h" */
+/* #include "internal/fakeamx.h" */
+/* #include "internal/init.h" */
+/* #include "internal/log.h" */
+/* #include "internal/native.h" */
+/* #include "internal/param.h" */
+
+SAMPGDK_MODULE_INIT(a_vehicles) {
+  return 0;
+}
+
+SAMPGDK_MODULE_CLEANUP(a_vehicles) {
 }
 
 
