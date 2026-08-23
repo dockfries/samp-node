@@ -8,3 +8,6 @@
 [submodule "deps/samp-plugin-sdk"]
 	path = deps/samp-plugin-sdk
 	url = git@github.com:AmyrAhmady/samp-plugin-sdk.git
+[submodule "deps/cmake-modules"]
+	path = deps/cmake-modules
+	url = https://github.com/dockfries/samp-cmake-modules
