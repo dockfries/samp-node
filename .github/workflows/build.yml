@@ -46,7 +46,7 @@ jobs:
       - name: move release package
         run: cd build && mv cpack/*.tar.gz ../releases/samp-node-linux-${{ matrix.arch }}.tar.gz
       - name: Upload to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -98,7 +98,7 @@ jobs:
       - name: move release package
         run: cd build && mv cpack/*.zip ../releases/samp-node-windows-${{ matrix.arch }}.zip
       - name: Upload to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
