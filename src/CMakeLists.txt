@@ -98,4 +98,11 @@ else()
 	set(CPACK_GENERATOR TGZ)
 endif()
 
+# Third-party deps pulled in via add_subdirectory (sampgdk -> zydis/zycore)
+# register install() rules that land in lib/ and include/ of the staging
+# area. Strip them after staging and before packaging (CPACK_PRE_BUILD_SCRIPTS
+# runs post-install, pre-archive) so the archive only ships samp-node's
+# own files.
+set(CPACK_PRE_BUILD_SCRIPTS ${PROJECT_SOURCE_DIR}/cmake/cpack_strip.cmake)
+
 include(CPack)
