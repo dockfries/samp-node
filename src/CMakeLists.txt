@@ -50,7 +50,7 @@ include_directories(
 	${SAMPSDK_INCLUDE_DIR}/amx
 	${PROJECT_SOURCE_DIR}/deps/json/single_include/nlohmann
 	${PROJECT_SOURCE_DIR}/deps/tinydir
-	${PROJECT_SOURCE_DIR}/deps/node/include
+	${PROJECT_SOURCE_DIR}/deps/node/include/include/node
 )
 
 # -

@@ -27,6 +27,22 @@ during CMake configuration.
 See that repository for instructions on building libnode from source for a
 specific Node.js version.
 
+### Node headers
+
+The headers used to compile against libnode live in `deps/node/include`, which
+is a shallow submodule pointing at
+[github.com/MohammadMD1383/node-headers](https://github.com/MohammadMD1383/node-headers)
+tagged `v22.23.2` — matching the libnode binaries downloaded above. If you
+build a libnode for a different Node.js version, switch the submodule to the
+corresponding tag first:
+
+```sh
+git submodule update --init --recursive   # shallow clone of node-headers
+cd deps/node/include
+git fetch --depth 1 origin tag v<version>
+git checkout v<version>
+```
+
 ### Local paths
 
 If you prefer to build libnode yourself, place the files here:
@@ -57,7 +73,7 @@ chmod +x ./build.sh
 
 ```sh
 cd samp-node
-git submodule update --init --recursive   # ensure submodules (incl. sampgdk) are checked out
+git submodule update --init --recursive   # ensure submodules (incl. node headers & sampgdk) are checked out
 mkdir build && cd build
 
 # for 32-bit:
@@ -72,7 +88,7 @@ make -j$(nproc)
 
 ```pwsh
 cd samp-node
-git submodule update --init --recursive   # ensure submodules (incl. sampgdk) are checked out
+git submodule update --init --recursive   # ensure submodules (incl. node headers & sampgdk) are checked out
 mkdir build, releases -ErrorAction SilentlyContinue
 cd build
 

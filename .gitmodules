@@ -14,3 +14,7 @@
 [submodule "deps/sampgdk"]
 	path = deps/sampgdk
 	url = https://github.com/dockfries/sampgdk-backup.git
+[submodule "deps/node/include"]
+	path = deps/node/include
+	url = https://github.com/MohammadMD1383/node-headers.git
+	shallow = true
