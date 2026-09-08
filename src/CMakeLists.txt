@@ -40,7 +40,6 @@ find_package(SAMPSDK REQUIRED)
 include_directories(
 	${SAMPSDK_INCLUDE_DIR}
 	${SAMPSDK_INCLUDE_DIR}/amx
-	${PROJECT_SOURCE_DIR}/deps/sampgdk
 	${PROJECT_SOURCE_DIR}/deps/json/single_include/nlohmann
 	${PROJECT_SOURCE_DIR}/deps/tinydir
 	${PROJECT_SOURCE_DIR}/deps/node/include
@@ -59,7 +58,6 @@ file(GLOB SAMPNODE_FILES
 
 add_samp_plugin(${PROJECT_NAME}
 	${SAMPSDK_DIR}/amxplugin.cpp
-	${PROJECT_SOURCE_DIR}/deps/sampgdk/sampgdk.c
 	${SAMPNODE_FILES}
 	plugin.def
 )
@@ -79,7 +77,7 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
 	${NODE_PATH}/${NODE_FILE} ${PROJECT_SOURCE_DIR}/test/${NODE_FILE}
 )
 
-target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
+target_link_libraries(${PROJECT_NAME} sampgdk ${LIBRARIES})
 
 # -
 # CPack

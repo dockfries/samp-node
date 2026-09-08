@@ -4,7 +4,8 @@
 #include "events.hpp"
 #include "logger.hpp"
 #include "resource.hpp"
-#include "sampgdk.h"
+#include <sampgdk/core.h>
+#include <sampgdk/interop.h>
 #include <string>
 #include <vector>
 

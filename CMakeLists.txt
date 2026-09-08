@@ -55,4 +55,14 @@ endif()
 # Directories
 # -
 
+# sampgdk is consumed as a git submodule. node-24 targets 64-bit only; build
+# sampgdk as a static, tiny library linked into the samp-node plugin module.
+set(SAMPGDK_ARCH "64" CACHE STRING "" FORCE)
+set(SAMPGDK_STATIC ON CACHE BOOL "" FORCE)
+set(SAMPGDK_TINY ON CACHE BOOL "" FORCE)
+set(SAMPGDK_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(SAMPGDK_BUILD_PLUGINS OFF CACHE BOOL "" FORCE)
+set(SAMP_SDK_ROOT "${PROJECT_SOURCE_DIR}/deps/samp-plugin-sdk")
+
+add_subdirectory(deps/sampgdk sampgdk)
 add_subdirectory(src)

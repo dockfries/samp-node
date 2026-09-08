@@ -4,7 +4,8 @@
 #include "config.hpp"
 #include "events.hpp"
 #include "nodeimpl.hpp"
-#include "sampgdk.h"
+#include <sampgdk/core.h>
+#include <sampgdk/interop.h>
 #include <algorithm>
 #include <fstream>
 #include <iostream>

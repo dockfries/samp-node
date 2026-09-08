@@ -1,6 +1,7 @@
 #include "natives.hpp"
 #include "common.hpp"
-#include "sampgdk.h"
+#include <sampgdk/core.h>
+#include <sampgdk/interop.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
