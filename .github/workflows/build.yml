@@ -16,6 +16,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: "true"
+      # sampgdk (submodule) runs its Python code generator during configure/build.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
       - name: install packages
         run: |
           sudo apt update
@@ -62,6 +66,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: "true"
+      # sampgdk (submodule) runs its Python code generator during configure/build.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
       - name: cmake
         shell: powershell
         run: |
