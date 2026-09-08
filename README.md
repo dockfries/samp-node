@@ -43,11 +43,11 @@ Set `-D__deps_check_enabled=false` when running cmake to skip the download.
 ### linux with docker
 
 ```sh
-git clone https://github.com/dockfries/samp-node
+git clone --recursive https://github.com/dockfries/samp-node
 # or ssh
-# git clone git@github.com:dockfries/samp-node.git
+# git clone --recursive git@github.com:dockfries/samp-node.git
 cd samp-node
-git submodule update --init
+git submodule update --init --recursive
 
 chmod +x ./build.sh
 ./build.sh 22.23.2 # version
@@ -57,6 +57,7 @@ chmod +x ./build.sh
 
 ```sh
 cd samp-node
+git submodule update --init --recursive   # ensure submodules (incl. sampgdk) are checked out
 mkdir build && cd build
 
 # for 32-bit:
@@ -71,6 +72,7 @@ make -j$(nproc)
 
 ```pwsh
 cd samp-node
+git submodule update --init --recursive   # ensure submodules (incl. sampgdk) are checked out
 mkdir build, releases -ErrorAction SilentlyContinue
 cd build
 

@@ -17,7 +17,7 @@ jobs:
         with:
           submodules: "true"
       # sampgdk (submodule) runs its Python code generator during configure/build.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.x"
       - name: install packages
@@ -67,7 +67,7 @@ jobs:
         with:
           submodules: "true"
       # sampgdk (submodule) runs its Python code generator during configure/build.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.x"
       - name: cmake
