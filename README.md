@@ -39,6 +39,22 @@ If you prefer to build libnode yourself, place the files here:
 
 Then set `-D__deps_check_enabled=false` when running cmake to skip the download.
 
+### Node headers
+
+The headers used to compile against libnode live in `deps/node/include`, which
+is a shallow submodule pointing at
+[github.com/MohammadMD1383/node-headers](https://github.com/MohammadMD1383/node-headers)
+tagged `v24.20.0` — matching the libnode binaries downloaded above. If you
+build a libnode for a different Node.js version, switch the submodule to the
+corresponding tag first:
+
+```sh
+git submodule update --init --recursive   # shallow clone of node-headers
+cd deps/node/include
+git fetch --depth 1 origin tag v<version>
+git checkout v<version>
+```
+
 ## How to build samp-node
 
 ### linux with docker
@@ -58,7 +74,7 @@ chmod +x ./build.sh
 
 ```sh
 cd samp-node
-git submodule update --init --recursive   # ensure submodules (incl. sampgdk) are checked out
+git submodule update --init --recursive   # ensure submodules (incl. node headers & sampgdk) are checked out
 mkdir build && cd build
 
 cmake -DCMAKE_BUILD_TYPE=Release ..
@@ -69,7 +85,7 @@ make -j$(nproc)
 
 ```pwsh
 cd samp-node
-git submodule update --init --recursive   # ensure submodules (incl. sampgdk) are checked out
+git submodule update --init --recursive   # ensure submodules (incl. node headers & sampgdk) are checked out
 mkdir build, releases -ErrorAction SilentlyContinue
 cd build
 
