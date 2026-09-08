@@ -11,3 +11,6 @@
 [submodule "deps/cmake-modules"]
 	path = deps/cmake-modules
 	url = https://github.com/dockfries/samp-cmake-modules
+[submodule "deps/sampgdk"]
+	path = deps/sampgdk
+	url = https://github.com/dockfries/sampgdk-backup.git

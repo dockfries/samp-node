@@ -64,4 +64,18 @@ endif()
 # Directories
 # -
 
+# sampgdk is consumed as a git submodule. Match its arch to PLUGIN_ARCH and
+# build it as a static, tiny library linked into the samp-node plugin module.
+if(PLUGIN_ARCH STREQUAL "x64")
+	set(SAMPGDK_ARCH "64" CACHE STRING "" FORCE)
+else()
+	set(SAMPGDK_ARCH "32" CACHE STRING "" FORCE)
+endif()
+set(SAMPGDK_STATIC ON CACHE BOOL "" FORCE)
+set(SAMPGDK_TINY ON CACHE BOOL "" FORCE)
+set(SAMPGDK_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(SAMPGDK_BUILD_PLUGINS OFF CACHE BOOL "" FORCE)
+set(SAMP_SDK_ROOT "${PROJECT_SOURCE_DIR}/deps/samp-plugin-sdk")
+
+add_subdirectory(deps/sampgdk sampgdk)
 add_subdirectory(src)

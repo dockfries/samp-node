@@ -8,7 +8,8 @@
 #include "events.hpp"
 #include "logger.hpp"
 #include "resource.hpp"
-#include "sampgdk.h"
+#include <sampgdk/core.h>
+#include <sampgdk/interop.h>
 
 namespace sampnode {
 bool js_calling_public = false;

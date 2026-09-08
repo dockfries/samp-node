@@ -8,7 +8,8 @@
 #include "config.hpp"
 #include "events.hpp"
 #include "nodeimpl.hpp"
-#include "sampgdk.h"
+#include <sampgdk/core.h>
+#include <sampgdk/interop.h>
 
 const AMX_NATIVE_INFO native_list[] = {
     {"SAMPNode_CallEvent", sampnode::event::pawn_call_event}, {0, 0}};

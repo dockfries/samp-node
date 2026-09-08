@@ -5,7 +5,8 @@
 #include <vector>
 
 #include "common.hpp"
-#include "sampgdk.h"
+#include <sampgdk/core.h>
+#include <sampgdk/interop.h>
 
 namespace sampnode {
 std::unordered_map<std::string, AMX_NATIVE> pawn_natives_cache;
