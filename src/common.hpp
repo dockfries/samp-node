@@ -7,7 +7,7 @@
  * definitions; guard against a duplicate definition when that is already on
  * the command line. */
 #ifndef SAMPGDK_STATIC
-  #define SAMPGDK_STATIC
+#define SAMPGDK_STATIC
 #endif
 
 extern void *pAMXFunctions;

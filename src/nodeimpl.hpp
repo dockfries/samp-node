@@ -6,7 +6,6 @@
 #include "node.h"
 #include "resource.hpp"
 #include "uv.h"
-#include "uvloop.hpp"
 #include "v8.h"
 
 namespace sampnode {
@@ -26,7 +25,6 @@ public:
   v8::Platform *GetPlatform() noexcept { return v8Platform.get(); }
   v8::Isolate *GetIsolate() noexcept { return v8Isolate; }
   node::IsolateData *GetNodeIsolate() noexcept { return nodeData.get(); }
-  UvLoop *GetUVLoop() noexcept { return nodeLoop.get(); }
   Props_t &GetMainConfig() noexcept { return mainConfig; }
 
   void Tick();
@@ -37,7 +35,7 @@ private:
   std::unique_ptr<node::IsolateData, decltype(&node::FreeIsolateData)> nodeData;
   std::unique_ptr<node::MultiIsolatePlatform> v8Platform;
   std::unique_ptr<node::ArrayBufferAllocator> arrayBufferAllocator;
-  std::unique_ptr<UvLoop> nodeLoop;
+  uv_loop_t *uvLoop = nullptr;
   std::shared_ptr<Resource> resource;
   Props_t mainConfig;
 };

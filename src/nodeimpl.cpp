@@ -72,7 +72,7 @@ void NodeImpl::Tick() {
                                       resource->GetAsyncContext());
 
     v8Isolate->PerformMicrotaskCheckpoint();
-    uv_run(nodeLoop->GetLoop(), UV_RUN_NOWAIT);
+    uv_run(uvLoop, UV_RUN_NOWAIT);
     v8Isolate->PerformMicrotaskCheckpoint();
     v8Platform->DrainTasks(v8Isolate);
   }
@@ -115,9 +115,10 @@ void NodeImpl::Initialize(const Props_t &config) {
   v8::V8::Initialize();
 
   arrayBufferAllocator = node::ArrayBufferAllocator::Create();
-  nodeLoop = std::make_unique<UvLoop>("mainNode");
-  v8Isolate = node::NewIsolate(arrayBufferAllocator.get(), nodeLoop->GetLoop(),
-                               v8Platform.get());
+  uvLoop = new uv_loop_t;
+  uv_loop_init(uvLoop);
+  v8Isolate =
+      node::NewIsolate(arrayBufferAllocator.get(), uvLoop, v8Platform.get());
 
   v8::Locker locker(v8Isolate);
   v8::Isolate::Scope isolateScope(v8Isolate);
@@ -132,8 +133,7 @@ void NodeImpl::Initialize(const Props_t &config) {
   v8Isolate->SetCaptureStackTraceForUncaughtExceptions(true);
   v8Isolate->AddMessageListener(OnMessage);
 
-  nodeData.reset(node::CreateIsolateData(v8Isolate, nodeLoop->GetLoop(),
-                                         v8Platform.get(),
+  nodeData.reset(node::CreateIsolateData(v8Isolate, uvLoop, v8Platform.get(),
                                          arrayBufferAllocator.get()));
 }
 bool NodeImpl::LoadResource() {
@@ -165,7 +165,9 @@ void NodeImpl::Stop() {
   v8Isolate = nullptr;
 
   arrayBufferAllocator = nullptr;
-  nodeLoop = nullptr;
+  uv_loop_close(uvLoop);
+  delete uvLoop;
+  uvLoop = nullptr;
 
   node::FreeIsolateData(nodeData.release());
   node::FreePlatform(v8Platform.release());
