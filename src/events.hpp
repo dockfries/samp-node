@@ -47,7 +47,7 @@ public:
   event();
   ~event();
 
-  void append(const v8::Local<v8::Context> &context,
+  void append(v8::Isolate *isolate, const v8::Local<v8::Context> &context,
               const v8::Local<v8::Function> &function);
   void remove(const EventListener_t &eventListener);
   void remove_all();

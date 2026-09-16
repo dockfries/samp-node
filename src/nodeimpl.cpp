@@ -169,7 +169,9 @@ void NodeImpl::Stop() {
   uvLoop = nullptr;
 
   node::FreeIsolateData(nodeData.release());
-  node::FreePlatform(v8Platform.release());
+  // node::FreePlatform() was removed in Node.js v26; MultiIsolatePlatform is
+  // owned by the unique_ptr returned from MultiIsolatePlatform::Create().
+  v8Platform.reset();
 
   v8::V8::Dispose();
   v8::V8::DisposePlatform();

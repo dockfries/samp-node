@@ -212,7 +212,7 @@ void event::on(const v8::FunctionCallbackInfo<v8::Value> &info) {
 
     if ((funcArgIndex >= 0) && (info[funcArgIndex]->IsFunction())) {
       v8::Local<v8::Function> function = info[funcArgIndex].As<v8::Function>();
-      _event->append(context, function);
+      _event->append(isolate, context, function);
     }
   }
 }
@@ -296,10 +296,9 @@ event::event() {}
 
 event::~event() {}
 
-void event::append(const v8::Local<v8::Context> &context,
+void event::append(v8::Isolate *isolate,
+                   const v8::Local<v8::Context> &context,
                    const v8::Local<v8::Function> &function) {
-  v8::Isolate *isolate = function->GetIsolate();
-
   bool result = std::any_of(
       functionList.cbegin(), functionList.cend(),
       [&function, &isolate](const std::shared_ptr<EventListener_t> &listener) {
