@@ -5,7 +5,7 @@ Forked from [`AmyrAhmady/samp-node`](https://github.com/AmyrAhmady/samp-node)
 ## Changes in this fork
 
 - Only can work with [infernus](https://github.com/dockfries/infernus).
-- Update `Node.js` to **v24.21.0**.
+- Update `Node.js` to **v26.8.2**.
 - Both `ESModule` and `CommonJS` supported, depending on the type field of package.json and the bundler output format.
 - Only `entry_file` is used, `resource` config are removed.
 - Removed `samp.fire` to avoid crashes.
@@ -35,7 +35,7 @@ If you prefer to build libnode yourself, place the files here:
 | Platform | Path |
 |----------|------|
 | Windows x64 | `deps/node/lib/Release/win64/libnode.lib` + `libnode.dll` |
-| Linux x64 | `deps/node/lib/Release/linux64/libnode.so.137` |
+| Linux x64 | `deps/node/lib/Release/linux64/libnode.so.147` |
 
 Then set `-D__deps_check_enabled=false` when running cmake to skip the download.
 
@@ -44,7 +44,7 @@ Then set `-D__deps_check_enabled=false` when running cmake to skip the download.
 The headers used to compile against libnode live in `deps/node/include`, which
 is a shallow submodule pointing at
 [github.com/MohammadMD1383/node-headers](https://github.com/MohammadMD1383/node-headers)
-tagged `v24.21.0` — matching the libnode binaries downloaded above. If you
+tagged `v26.8.2` — matching the libnode binaries downloaded above. If you
 build a libnode for a different Node.js version, switch the submodule to the
 corresponding tag first:
 
@@ -67,7 +67,7 @@ cd samp-node
 git submodule update --init --recursive
 
 chmod +x ./build.sh
-./build.sh 24.21.0 # version
+./build.sh 26.8.2 # version
 ```
 
 ### linux with cmake (x64 default)

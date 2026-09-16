@@ -15,13 +15,14 @@ set(NODE_REPO "dockfries/libnode" CACHE STRING
     "GitHub repository for libnode releases")
 
 # Tag prefix for the libnode release tag.
-# When pushing tags: git tag v24.21.0  → prefix "v"
-# When using manual dispatch: tag is libnode-v24.21.0  → prefix "libnode-v"
+# When pushing tags: git tag v26.8.2  → prefix "v"
+# When using manual dispatch: tag is libnode-v26.8.2  → prefix "libnode-v"
 set(NODE_TAG_PREFIX "v" CACHE STRING
     "Prefix for the libnode release tag (e.g. v → v${PLUGIN_VERSION})")
 
 # ── libnode library file names ─────────────────────────────────────
-set(NODE_LIB_VERSION "137")
+# Node.js ABI (NODE_MODULE_VERSION): 137 for v24.x, 147 for v26.x.
+set(NODE_LIB_VERSION "147")
 set(NODE_LIB_WIN "libnode.lib")
 set(NODE_LIB_DLL "libnode.dll")
 set(NODE_LIB_LINUX "libnode.so.${NODE_LIB_VERSION}")

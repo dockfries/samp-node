@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.19)
 project(samp-node)
 
 if (NOT PLUGIN_VERSION)
-	set(PLUGIN_VERSION "24.21.0")
+	set(PLUGIN_VERSION "26.8.2")
 endif()
 
 include(./DepsDownload.cmake)
@@ -55,7 +55,7 @@ endif()
 # Directories
 # -
 
-# sampgdk is consumed as a git submodule. node-24 targets 64-bit only; build
+# sampgdk is consumed as a git submodule. node-26 targets 64-bit only; build
 # sampgdk as a static, tiny library linked into the samp-node plugin module.
 set(SAMPGDK_ARCH "64" CACHE STRING "" FORCE)
 set(SAMPGDK_STATIC ON CACHE BOOL "" FORCE)
