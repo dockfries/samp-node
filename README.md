@@ -5,7 +5,7 @@ Forked from [`AmyrAhmady/samp-node`](https://github.com/AmyrAhmady/samp-node)
 ## Changes in this fork
 
 - Only can work with [infernus](https://github.com/dockfries/infernus).
-- Update `Node.js` to **v22.23.2**.
+- Update `Node.js` to **v22.23.3**.
 - Both `ESModule` and `CommonJS` supported, depending on the type field of package.json and the bundler output format.
 - Only `entry_file` is used, `resource` config are removed.
 - Removed `samp.fire` to avoid crashes.
@@ -32,7 +32,7 @@ specific Node.js version.
 The headers used to compile against libnode live in `deps/node/include`, which
 is a shallow submodule pointing at
 [github.com/MohammadMD1383/node-headers](https://github.com/MohammadMD1383/node-headers)
-tagged `v22.23.2` — matching the libnode binaries downloaded above. If you
+tagged `v22.23.3` — matching the libnode binaries downloaded above. If you
 build a libnode for a different Node.js version, switch the submodule to the
 corresponding tag first:
 
@@ -66,7 +66,7 @@ cd samp-node
 git submodule update --init --recursive
 
 chmod +x ./build.sh
-./build.sh 22.23.2 # version
+./build.sh 22.23.3 # version
 ```
 
 ### linux with cmake
