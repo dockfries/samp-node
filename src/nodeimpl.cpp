@@ -69,10 +69,9 @@ void NodeImpl::Tick() {
                                       resource->GetAsyncResource(v8Isolate),
                                       resource->GetAsyncContext());
 
-    v8Isolate->PerformMicrotaskCheckpoint();
     uv_run(uvLoop, UV_RUN_NOWAIT);
-    v8Isolate->PerformMicrotaskCheckpoint();
     v8Platform->DrainTasks(v8Isolate);
+    ctx->GetMicrotaskQueue()->PerformCheckpoint(v8Isolate);
   }
 }
 
