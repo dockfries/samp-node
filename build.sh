@@ -4,7 +4,7 @@ set -euo pipefail
 # Validate input args
 if [ $# -lt 1 ]; then
   echo "Usage: $0 <plugin_version>"
-  echo "Example: $0 26.11.1"
+  echo "Example: $0 26.12.0"
   exit 1
 fi
 
