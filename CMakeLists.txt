@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.19)
 project(samp-node)
 
 if (NOT PLUGIN_VERSION)
-	set(PLUGIN_VERSION "26.12.1")
+	set(PLUGIN_VERSION "26.13.0")
 endif()
 
 include(./DepsDownload.cmake)
